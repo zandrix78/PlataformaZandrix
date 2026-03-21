@@ -2254,61 +2254,73 @@
     }
     
     function openPublicBio() {
-        // 1. Garante que o objeto 'bio' está atualizado com os dados do formulário
-        updateBioPreview();
-        if (bio.newAvatarData) {
-            bio.avatar = bio.newAvatarData;
+        try {
+            // 1. Garante que o objeto 'bio' está atualizado com os dados do formulário
+            updateBioPreview();
+            if (bio.newAvatarData) {
+                bio.avatar = bio.newAvatarData;
+            }
+
+            // 2. Stringify e Base64 encode (com suporte a UTF-8)
+            const bioString = JSON.stringify(bio);
+            const encodedBio = btoa(unescape(encodeURIComponent(bioString)));
+
+            // 3. Construa a URL final de forma robusta
+            let url = window.location.href.split('#')[0].split('?')[0];
+            const publicUrl = `${url}?p=bio#${encodedBio}`;
+
+            // 4. Mostrar na tela para cópia manual (PRIORIDADE MÁXIMA)
+            const resultArea = document.getElementById('bio-result-area');
+            const urlInput = document.getElementById('bio-public-url');
+            
+            if (resultArea && urlInput) {
+                resultArea.style.display = 'block';
+                urlInput.value = publicUrl;
+                urlInput.select();
+                resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                throw new Error("Campos de exibição não encontrados.");
+            }
+            
+            // Tenta copiar automaticamente (se falhar, não trava o resto)
+            if (navigator.clipboard) navigator.clipboard.writeText(publicUrl).catch(() => {});
+            showNotification("Link gerado! Veja abaixo.");
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao gerar link: " + e.message);
         }
-
-        // 2. Stringify e Base64 encode (com suporte a UTF-8)
-        const bioString = JSON.stringify(bio);
-        const encodedBio = btoa(unescape(encodeURIComponent(bioString)));
-
-        // 3. Construa a URL final de forma robusta
-        // Usamos a mesma página (index.html) mas com parâmetro ?p=bio
-        let url = window.location.href.split('#')[0].split('?')[0];
-        
-        const publicUrl = `${url}?p=bio#${encodedBio}`;
-
-        // 4. Mostrar na tela para cópia manual
-        const resultArea = document.getElementById('bio-result-area');
-        const urlInput = document.getElementById('bio-public-url');
-        if (resultArea && urlInput) {
-            resultArea.style.display = 'block';
-            urlInput.value = publicUrl;
-            urlInput.select(); // Seleciona o texto automaticamente para facilitar
-            // Rola a tela para mostrar o link
-            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        
-        // Tenta copiar automaticamente também, só por garantia
-        navigator.clipboard.writeText(publicUrl).catch(() => {});
-        showNotification("Link gerado! Copie no campo acima.");
     }
 
     function generateWhatsAppLink() {
-        const phoneInput = document.getElementById('wa-phone');
-        const messageInput = document.getElementById('wa-message');
-        const phone = phoneInput.value.replace(/\D/g, '');
-        const message = messageInput.value;
+        try {
+            const phoneInput = document.getElementById('wa-phone');
+            const messageInput = document.getElementById('wa-message');
+            const phone = phoneInput.value.replace(/\D/g, '');
+            const message = messageInput ? messageInput.value : '';
 
-        if (!phone) {
-            showNotification('Por favor, insira um número de telefone.', 'error');
-            return;
-        }
+            if (!phone) {
+                showNotification('Por favor, insira um número de telefone.', 'error');
+                return;
+            }
 
-        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-        
-        // Mostrar na tela
-        const resultArea = document.getElementById('wa-result-area');
-        const urlInput = document.getElementById('wa-generated-link');
-        if (resultArea && urlInput) {
-            resultArea.style.display = 'block';
-            urlInput.value = url;
-            urlInput.select();
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            
+            // Mostrar na tela
+            const resultArea = document.getElementById('wa-result-area');
+            const urlInput = document.getElementById('wa-generated-link');
+            
+            if (resultArea && urlInput) {
+                resultArea.style.display = 'block';
+                urlInput.value = url;
+                urlInput.select();
+                resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            showNotification('Link gerado! Copie no campo abaixo.');
+        } catch (e) {
+            console.error(e);
+            alert("Erro: " + e.message);
         }
-        
-        showNotification('Link gerado! Copie no campo abaixo.');
     }
 
     // --- Funções de Configurações (Settings) ---
