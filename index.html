@@ -1479,7 +1479,7 @@
         textarea.select();
     }
 
-    function compressImage(base64Str, maxWidth = 150, quality = 0.5) {
+    function compressImage(base64Str, maxWidth = 100, quality = 0.4) {
         return new Promise((resolve) => {
             const img = new Image();
             img.src = base64Str;
@@ -2375,13 +2375,18 @@
         try {
             // 1. Garante que o objeto 'bio' está atualizado com os dados do formulário
             updateBioPreview();
+            
+            // OTIMIZAÇÃO: Cria uma cópia limpa para não duplicar a imagem no link
+            const bioToExport = { ...bio };
             if (bio.newAvatarData) {
-                bio.avatar = bio.newAvatarData;
+                bioToExport.avatar = bio.newAvatarData;
             }
+            // Remove dados temporários que incham o link desnecessariamente
+            delete bioToExport.newAvatarData;
 
             // 2. Stringify e Base64 encode (com suporte a UTF-8)
-            const bioString = JSON.stringify(bio);
-            const compressed = pako.deflate(bioString); // Uint8Array
+            const bioString = JSON.stringify(bioToExport);
+            const compressed = pako.deflate(bioString, { level: 9 }); // Compressão Máxima (Nível 9)
             let binaryString = '';
             for (let i = 0; i < compressed.length; i++) {
                 binaryString += String.fromCharCode(compressed[i]);
