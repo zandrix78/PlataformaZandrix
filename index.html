@@ -1388,6 +1388,22 @@
     <script>
     // --- 1. ESTADO DA APLICAÇÃO E INICIALIZAÇÃO ---
     let users = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+    
+    // --- CORREÇÃO DE EMERGÊNCIA: Garante que sua conta exista ---
+    // Se o usuário Richard não existir ou a senha estiver errada, recria/atualiza
+    const adminEmail = 'richarddasilvacampos25@gmail.com';
+    const adminPass = 'richard1234567891011';
+    const existingAdminIndex = users.findIndex(u => u.email === adminEmail);
+    
+    if (existingAdminIndex === -1) {
+        users.push({ id: 'u-admin', name: 'Richard Zandrix', email: adminEmail, password: adminPass, avatar: 'https://i.pravatar.cc/150?u=richard' });
+        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+    } else if (users[existingAdminIndex].password !== adminPass) {
+        users[existingAdminIndex].password = adminPass; // Corrige a senha se estiver diferente
+        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+    }
+    // -------------------------------------------------------------
+
     let currentUser = JSON.parse(localStorage.getItem('zandrix_current_session')) || null;
     let ads = JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [];
     let bio = JSON.parse(localStorage.getItem('zandrix_bio_v2')) || {
@@ -1483,10 +1499,10 @@
         e.preventDefault();
         // Normaliza (remove espaços e coloca em minúsculo) para evitar erros de digitação
         const email = document.getElementById('login-email').value.trim().toLowerCase();
-        const password = document.getElementById('login-password').value.trim(); // Remove espaços extras da senha também
+        const password = document.getElementById('login-password').value; // Pega a senha exata
 
-        // Busca robusta: compara email normalizado para garantir que ache o usuário
-        const user = users.find(u => u.email.trim().toLowerCase() === email && u.password === password);
+        // Busca robusta: Verifica senha exata OU senha sem espaços (caso tenha salvo errado antes)
+        const user = users.find(u => u.email === email && (u.password === password || u.password === password.trim()));
 
         if (user) {
             currentUser = user;
