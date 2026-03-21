@@ -2436,10 +2436,21 @@
         copyToClipboard(url, "Link copiado!");
     }
 
-    function shortenCurrentLink() {
-        const longUrl = document.getElementById('bio-public-url').value;
+    async function shortenCurrentLink() {
+        const urlInput = document.getElementById('bio-public-url');
+        const longUrl = urlInput.value;
         if(!longUrl) return;
         
+        // Verificação inteligente de tamanho
+        if (longUrl.length > 2000) {
+            if (confirm("⚠️ O link está muito pesado para encurtar (devido à foto).\n\nDeseja ativar o 'Modo Instagram' automaticamente para gerar um link curto e compatível agora?")) {
+                document.getElementById('bio-optimize-insta').checked = true;
+                await openPublicBio(); // Gera novo link leve
+                setTimeout(shortenCurrentLink, 1000); // Tenta encurtar de novo
+                return;
+            }
+        }
+
         showNotification("Encurtando link... aguarde.");
         
         // Tenta usar API do TinyURL
@@ -2449,12 +2460,16 @@
                 throw new Error("Falha na API");
             })
             .then(shortUrl => {
-                document.getElementById('bio-public-url').value = shortUrl;
-                showNotification("Sucesso! Link encurtado.", "success");
+                urlInput.value = shortUrl;
+                showNotification("✅ Sucesso! Link encurtado.", "success");
+                // Tenta copiar automaticamente
+                if(navigator.clipboard) navigator.clipboard.writeText(shortUrl);
             })
             .catch(err => {
-                alert("O link é muito longo para encurtar automaticamente ou o navegador bloqueou. Tente ativar o 'Modo Instagram' e gerar novamente.");
-                window.open(`https://tinyurl.com/create.php?url=${encodeURIComponent(longUrl)}`, '_blank');
+                console.error(err);
+                if(confirm("O encurtador automático falhou (possível bloqueio do navegador). Deseja abrir o site do TinyURL para encurtar manualmente?")) {
+                    window.open(`https://tinyurl.com/create.php?url=${encodeURIComponent(longUrl)}`, '_blank');
+                }
             });
     }
 
