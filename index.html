@@ -1,0 +1,2481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zandrix | Plataforma SaaS</title>
+    
+    <!-- Dependências Externas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* --- 1. CONFIGURAÇÃO GERAL E VARIÁVEIS --- */
+        :root {
+            --color-primary: #9d00ff; /* Roxo Neon */
+            --color-secondary: #ff00dd; /* Pink Neon */
+            --color-bg: #000000;
+            --color-bg-light: #0a0a0a;
+            --color-card: #0a0a0a;
+            --color-border: #334155;
+            --color-text: #ffffff;
+            --color-text-muted: #a0a0a0;
+            --font-sans: 'Segoe UI', 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow-x: hidden;
+        }
+
+        /* Estilo da Barra de Rolagem (Scrollbar) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary); 
+            border-radius: 4px;
+        }
+
+        /* --- 1.1. EFEITOS DE FUNDO --- */
+        #particles-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Atrás de todo o conteúdo */
+            pointer-events: none; /* Não clicável */
+        }
+
+        /* --- 1.2. ANIMAÇÕES GERAIS --- */
+        section.reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        section.reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- 1.3. ANIMAÇÕES DE COMPONENTES --- */
+        /* Glitch effect for logo */
+        .glitch-logo {
+            position: relative;
+        }
+        .glitch-logo::before,
+        .glitch-logo::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--color-bg);
+            overflow: hidden;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        }
+        .glitch-logo::before {
+            left: 2px;
+            text-shadow: -2px 0 var(--color-secondary);
+            animation: glitch-anim-1 3s infinite linear alternate-reverse;
+        }
+        .glitch-logo::after {
+            left: -2px;
+            text-shadow: 2px 0 var(--color-primary);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim-1 {
+            0% { clip-path: polygon(0 23%, 100% 23%, 100% 28%, 0 28%); }
+            20% { clip-path: polygon(0 62%, 100% 62%, 100% 68%, 0 68%); }
+            40% { clip-path: polygon(0 33%, 100% 33%, 100% 38%, 0 38%); }
+            60% { clip-path: polygon(0 82%, 100% 82%, 100% 88%, 0 88%); }
+            80% { clip-path: polygon(0 43%, 100% 43%, 100% 48%, 0 48%); }
+            100% { clip-path: polygon(0 13%, 100% 13%, 100% 18%, 0 18%); }
+        }
+        @keyframes glitch-anim-2 {
+            0% { clip-path: polygon(0 73%, 100% 73%, 100% 78%, 0 78%); }
+            20% { clip-path: polygon(0 12%, 100% 12%, 100% 18%, 0 18%); }
+            40% { clip-path: polygon(0 53%, 100% 53%, 100% 58%, 0 58%); }
+            60% { clip-path: polygon(0 2%, 100% 2%, 100% 8%, 0 8%); }
+            80% { clip-path: polygon(0 93%, 100% 93%, 100% 98%, 0 98%); }
+            100% { clip-path: polygon(0 43%, 100% 43%, 100% 48%, 0 48%); }
+        }
+
+        /* App View Transitions */
+        .view { 
+            display: none; 
+        }
+        .view.active { 
+            display: block; 
+            animation: viewFadeIn 0.5s ease-out forwards;
+        }
+        @keyframes viewFadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 1.5. ESTILOS DA NOVA LANDING PAGE --- */
+        .landing-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        #landing-page .hero h1 {
+            animation: titleGlow 3s infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 10px rgba(157, 0, 255, 0.4), 0 0 20px rgba(157, 0, 255, 0.4); }
+            to { text-shadow: 0 0 20px rgba(157, 0, 255, 0.8), 0 0 40px rgba(157, 0, 255, 0.8), 0 0 5px #fff; }
+        }
+
+        .features-section {
+            padding: 4rem 0;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+        .feature-card {
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(157, 0, 255, 0.3);
+        }
+        .feature-card .icon {
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        .testimonials-section {
+            padding: 4rem 0;
+            background: var(--color-bg-light);
+        }
+        .testimonial-carousel {
+            position: relative;
+            max-width: 800px;
+            margin: auto;
+            overflow: hidden;
+        }
+        .testimonial-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        .testimonial-slide {
+            min-width: 100%;
+            padding: 0 2rem;
+            text-align: center;
+        }
+        .testimonial-slide img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            border: 3px solid var(--color-primary);
+        }
+        .testimonial-slide p {
+            font-style: italic;
+            color: var(--color-text-muted);
+            margin-bottom: 1rem;
+        }
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .carousel-btn.prev { left: 0px; }
+        .carousel-btn.next { right: 0px; }
+
+        .faq-section {
+            padding: 4rem 0;
+        }
+        .faq-accordion .faq-item {
+            border-bottom: 1px solid var(--color-border);
+        }
+        .faq-question {
+            width: 100%;
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 1.5rem 1rem;
+            font-size: 1.1rem;
+            color: var(--color-text);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+        .faq-answer p {
+            padding: 0 1rem 1.5rem;
+            color: var(--color-text-muted);
+        }
+        .faq-item.active .faq-answer {
+            max-height: 200px;
+        }
+
+        .pricing-section {
+            padding: 4rem 0;
+            background: var(--color-bg-light);
+        }
+        .pricing-card {
+            text-align: center;
+            border: 2px solid var(--color-border);
+        }
+
+        .pricing-card.highlighted {
+            border-color: var(--color-primary);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(157, 0, 255, 0.4);
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+        }
+
+        .pricing-card .price {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--color-primary);
+            margin: 1.5rem 0;
+        }
+
+        .pricing-card .price span {
+            font-size: 1rem;
+            color: var(--color-text-muted);
+            font-weight: normal;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+            color: var(--color-text-muted);
+        }
+
+        .pricing-card ul li {
+            margin-bottom: 1rem;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .pricing-card ul li::before {
+            content: '✔';
+            color: var(--color-primary);
+            position: absolute;
+            left: 0;
+        }
+
+        .landing-footer {
+            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem 2rem; /* More padding top */
+            text-align: left; /* Change alignment */
+            border-top: 1px solid var(--color-border);
+            margin-top: 4rem;
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .footer-column .logo {
+            justify-content: flex-start;
+            margin-bottom: 1rem;
+        }
+        .footer-column h4 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .footer-column ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .footer-column ul a {
+            color: var(--color-text-muted);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .footer-column ul a:hover {
+            color: var(--color-primary);
+        }
+        .footer-bottom {
+            border-top: 1px solid var(--color-border);
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+        }
+        .social-links { display: flex; gap: 1.5rem; }
+        .social-links a { color: var(--color-text-muted); transition: color 0.3s, transform 0.3s; }
+        .social-links a:hover { color: var(--color-primary); transform: scale(1.2); }
+
+        /* Tech Stack Carousel */
+        .tech-stack-section {
+            padding: 4rem 0;
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .tech-carousel {
+            display: flex;
+            width: fit-content;
+            animation: scroll 40s linear infinite;
+        }
+        .tech-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0 2rem;
+            font-size: 1.5rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .tech-item:hover { color: var(--color-primary); transform: scale(1.1); }
+        @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* Floating WhatsApp Button */
+        .whatsapp-float {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            bottom: 40px;
+            right: 40px;
+            background-color: #25d366;
+            color: #FFF;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 30px;
+            box-shadow: 2px 2px 15px rgba(0,0,0,0.3);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        /* --- 2. LANDING PAGE & AUTENTICAÇÃO --- */
+        #landing-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .landing-header {
+            border-bottom: 1px solid var(--color-border);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .landing-nav {
+            max-width: 1280px;
+            margin: auto;
+            padding: 0 1.5rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .logo-icon {
+            width: 2rem;
+            height: 2rem;
+            object-fit: contain;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+            box-shadow: 0 0 20px rgba(157, 0, 255, 0.5);
+        }
+        .btn-primary:hover { background-color: #2563eb; }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-text-muted);
+        }
+        .btn-ghost:hover { background-color: var(--color-bg-light); color: white; }
+
+        .hero {
+            padding: 6rem 1.5rem;
+            text-align: center; /* Mantido para o título e botão */
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+
+        #landing-page .hero h1 span {
+            background: linear-gradient(to right, var(--color-primary), var(--color-secondary), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--color-text-muted);
+            max-width: 42rem;
+            margin: auto;
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none; /* Alterado por JS */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-form {
+            background: var(--color-card);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid var(--color-border);
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .auth-form h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+
+        .input-group { margin-bottom: 1rem; }
+
+        .input-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 8px var(--color-primary);
+        }
+
+        .auth-form .btn { width: 100%; padding: 0.75rem; }
+        .auth-form .close-btn { position: absolute; top: 1rem; right: 1rem; }
+
+        /* --- 3. LAYOUT DA APLICAÇÃO AUTENTICADA --- */
+        #app {
+            display: none; /* Alterado por JS */
+            min-height: 100vh;
+        }
+
+        .app-layout {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--color-bg-light);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: fixed;
+        }
+
+        .sidebar-header {
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .sidebar nav {
+            padding: 1rem;
+            flex-grow: 1;
+        }
+
+        .nav-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: var(--color-text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .nav-btn:hover { background-color: var(--color-bg-light); color: white; }
+        .nav-btn.active {
+            background-color: var(--color-primary);
+            color: white;
+            box-shadow: 0 0 15px rgba(157, 0, 255, 0.4);
+        }
+
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .user-profile img { width: 2.5rem; height: 2.5rem; border-radius: 50%; }
+        .user-profile .name { font-weight: 500; }
+        .user-profile .email { font-size: 0.75rem; color: var(--color-text-muted); }
+
+        .main-content {
+            flex-grow: 1;
+            margin-left: 250px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-bg);
+            height: 100vh;
+        }
+
+        .topbar {
+            height: 4rem;
+            border-bottom: 1px solid var(--color-border);
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .view-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* --- 4. COMPONENTES REUTILIZÁVEIS --- */
+        .card {
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+        }
+        .badge-active { background-color: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+        .badge-inactive { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+        .badge-draft { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2); }
+
+        /* --- 5. ESTILOS ESPECÍFICOS DAS VIEWS --- */
+        
+        /* Dashboard */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .stat-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid var(--color-primary);
+        }
+        .stat-card .value { font-size: 1.75rem; font-weight: bold; }
+        .stat-card .icon {
+            padding: 0.75rem;
+            border-radius: 50%;
+            background-color: var(--color-bg-light);
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .top-ads-list .ad-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--color-bg);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Ads Manager */
+        #ads-list .ad-row {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .ad-row .ad-info {
+            flex-grow: 1;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        } 
+        .ad-row .ad-info img { width: 6rem; height: 6rem; object-fit: cover; border-radius: 0.5rem; }
+        .ad-row .ad-stats { display: flex; gap: 1rem; color: var(--color-text-muted); font-size: 0.875rem; }
+        .ad-row .ad-actions { display: flex; gap: 0.5rem; }
+
+        /* Bio Manager */
+        .bio-manager-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+        .bio-preview {
+            width: 300px;
+            height: 620px;
+            border: 8px solid var(--color-bg-light);
+            border-radius: 2.5rem;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .bio-preview-screen {
+            height: 100%;
+            overflow-y: auto;
+            padding: 3rem 1.5rem 1.5rem;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .bio-preview-screen img { width: 6rem; height: 6rem; border-radius: 50%; margin-bottom: 1rem; }
+        .bio-preview-screen h2 { font-size: 1.25rem; }
+        .bio-preview-screen p { font-size: 0.875rem; opacity: 0.8; margin-bottom: 1.5rem; }
+        .bio-preview-link {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        /* Marketplace */
+        .marketplace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .marketplace-card {
+            border-radius: 1rem;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid var(--color-border);
+        }
+        .marketplace-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .marketplace-card img { width: 100%; height: 180px; object-fit: cover; }
+        .marketplace-card .content { padding: 1rem; }
+        .marketplace-card .price { font-weight: bold; color: var(--color-primary); }
+
+        /* --- MODAL STYLES --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: var(--color-bg-light);
+            margin: 5% auto;
+            padding: 2rem;
+            border: 1px solid var(--color-border);
+            width: 90%;
+            max-width: 700px;
+            border-radius: 1rem;
+            position: relative;
+        }
+        .close-modal-btn {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            color: var(--color-text-muted);
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #ad-image-preview, #ad-video-preview {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        #ad-image-preview img, #ad-video-preview video { max-height: 80px; border-radius: 5px; }
+
+        /* --- 6. RESPONSIVIDADE --- */
+        @media (max-width: 1024px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                z-index: 100;
+                transition: left 0.3s ease;
+            }
+            .sidebar.open { left: 0; }
+            .main-content { margin-left: 0; }
+            .topbar .menu-btn { display: block; }
+            .charts-grid, .bio-manager-layout { grid-template-columns: 1fr; }
+            .bio-preview { margin: 2rem auto 0; }
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .ad-row { flex-direction: column; }
+            .landing-container { padding: 0 1rem; }
+            /* Melhora a visualização em mobile forçando 1 coluna */
+            .features-grid, .marketplace-grid, .footer-grid { grid-template-columns: 1fr; }
+            .testimonial-slide { padding: 0 1rem; }
+            .pricing-card.highlighted { transform: none; }
+        }
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 99;
+        }
+        .mobile-overlay.open { display: block; }
+
+        /* --- 7. ESTILOS DE COMPONENTES ESPECÍFICOS --- */
+        /* Community Chat Styles */
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            background-color: #0b141a; /* Cor de fundo do WhatsApp */
+        }
+        .chat-message {
+            display: flex;
+            margin-bottom: 0.75rem;
+            max-width: 75%;
+            align-items: flex-end;
+        }
+        .chat-message.sent {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .chat-message.received {
+            align-self: flex-start;
+        }
+        .chat-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 8px;
+            border: 1px solid var(--color-border);
+        }
+        .message-bubble {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            position: relative;
+        }
+        .chat-message.sent .message-bubble {
+            background-color: #005c4b; /* Verde do WhatsApp */
+            border-top-right-radius: 0;
+        }
+        .chat-message.received .message-bubble {
+            background-color: #202c33; /* Cinza escuro do WhatsApp */
+            border-top-left-radius: 0;
+        }
+        .message-bubble p { margin: 0; color: #e9edef; white-space: pre-wrap; }
+        .message-time { font-size: 0.65rem; color: #ffffff99; float: right; margin-left: 10px; margin-top: 5px; }
+        .user-info { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; }
+        .message-actions {
+            margin-top: 5px;
+            display: flex;
+        }
+        .chat-message.sent .message-actions {
+            justify-content: flex-end;
+        }
+        .like-btn {
+            background: #2a3942;
+            border: 1px solid #3a4a55;
+            color: #8696a0;
+            border-radius: 20px;
+            padding: 2px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .like-btn:hover { background: #3a4a55; color: white; }
+        .like-btn.liked { background: rgba(255, 68, 68, 0.2); border-color: #ff4444; color: #ff4444; }
+        
+        /* Reply Styles */
+        .reply-btn {
+            background: #2a3942;
+            border: 1px solid #3a4a55;
+            color: #8696a0;
+            border-radius: 20px;
+            padding: 2px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            margin-left: 5px;
+        }
+        .reply-btn:hover { background: #3a4a55; color: white; }
+
+        .quoted-message {
+            background: rgba(0,0,0,0.2);
+            border-left: 4px solid var(--color-secondary);
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            opacity: 0.9;
+        }
+        .quoted-user { font-weight: bold; color: var(--color-secondary); font-size: 0.75rem; margin-bottom: 2px; }
+        .quoted-text { color: #e9edef; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; }
+
+        #reply-preview-bar {
+            background: #1f2c33;
+            padding: 10px;
+            border-left: 4px solid var(--color-secondary);
+            display: none; /* Hidden by default */
+            justify-content: space-between;
+            align-items: center;
+        }
+
+
+    </style>
+</head>
+    <style>
+        /* --- Notification Styles --- */
+        #notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+        .notification {
+            background-color: var(--color-card);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            min-width: 300px;
+            animation: fadeIn 0.5s, fadeOut 0.5s 4.5s forwards;
+        }
+        .notification.success { border-left: 4px solid #00cc00; }
+        .notification.error { border-left: 4px solid #ff4444; }
+    </style>
+<body>
+
+    <!-- ================================================== -->
+    <!--                  PÁGINA DE ENTRADA                 -->
+    <!-- ================================================== -->
+    <div id="landing-page">
+        <header class="landing-header">
+            <nav class="landing-nav">
+                <div class="logo glitch-logo" data-text="Zandrix">
+                    <img src="https://i.imgur.com/w28Wu0f.png" alt="Logo" class="logo-icon">
+                    Zandrix
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-ghost" onclick="openAuthModal('login')">Login</button>
+                    <button class="btn btn-primary" onclick="openAuthModal('register')">Criar Conta Grátis</button>
+                </div>
+            </nav>
+        </header>
+        <main>
+            <section class="hero reveal">
+                <div class="landing-container">
+                    <h1><span>Sua Plataforma</span>, Seu Universo Digital.</h1>
+                    <p id="typewriter-hero" class="text-muted" style="max-width: 42rem; margin: auto; margin-bottom: 2.5rem; min-height: 50px;"></p>
+                    <button class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.125rem;" onclick="openAuthModal('register')">Começar Agora de Graça</button>
+                </div>
+            </section>
+
+            <section id="features" class="features-section reveal">
+                <div class="landing-container">
+                    <h2 style="text-align: center;">Tudo que você precisa em um só lugar</h2>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="link"></i></div>
+                            <h3>Bio de Links Poderosa</h3>
+                            <p>Crie uma página de links personalizada, no estilo Linktree, para unificar sua presença online.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="megaphone"></i></div>
+                            <h3>Gestor de Anúncios</h3>
+                            <p>Organize e acompanhe a performance dos seus anúncios do Marketplace em um dashboard intuitivo.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="users"></i></div>
+                            <h3>Comunidade Exclusiva</h3>
+                            <p>Conecte-se com outros empreendedores, troque ideias e faça networking em um chat integrado.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="testimonials" class="testimonials-section reveal">
+                <div class="landing-container">
+                    <h2 style="text-align: center; margin-bottom: 3rem;">O que nossos usuários dizem</h2>
+                    <div class="testimonial-carousel">
+                        <div class="testimonial-track">
+                            <!-- Slides serão inseridos aqui pelo JS -->
+                        </div>
+                        <button class="carousel-btn prev"><i data-lucide="chevron-left"></i></button>
+                        <button class="carousel-btn next"><i data-lucide="chevron-right"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="how-it-works" class="process-section reveal">
+                <div class="landing-container">
+                    <h2 style="text-align: center;">Comece a Divulgar em 3 Passos</h2>
+                    <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="user-plus"></i></div>
+                            <h3>1. Crie sua Conta Grátis</h3>
+                            <p>O cadastro é rápido e leva menos de um minuto. Sem necessidade de cartão de crédito para começar.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="settings-2"></i></div>
+                            <h3>2. Configure seu Perfil</h3>
+                            <p>Personalize sua página de bio, adicione seus links mais importantes e comece a organizar seus anúncios.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="share-2"></i></div>
+                            <h3>3. Compartilhe e Cresça</h3>
+                            <p>Copie seu link único e divulgue no Instagram, WhatsApp e onde mais quiser para centralizar seu público.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="results" class="testimonials-section reveal">
+                <div class="landing-container" style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; gap: 2rem;">
+                    <div>
+                        <h2 id="count-ads" style="font-size: 3rem; margin: 0;">0+</h2>
+                        <p class="text-muted">Anúncios Criados</p>
+                    </div>
+                    <div>
+                        <h2 id="count-users" style="font-size: 3rem; margin: 0;">0+</h2>
+                        <p class="text-muted">Usuários na Plataforma</p>
+                    </div>
+                    <div>
+                        <h2 id="count-links" style="font-size: 3rem; margin: 0;">0+</h2>
+                        <p class="text-muted">Links Gerados</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="propaganda" class="features-section reveal">
+                <div class="landing-container">
+                    <h2 style="text-align: center;">Divulgue sua Marca como um Profissional</h2>
+                    <p class="text-muted" style="text-align: center; max-width: 600px; margin: auto; margin-bottom: 2rem;">A Zandrix oferece as ferramentas que você precisa para transformar seguidores em clientes.</p>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="image"></i></div>
+                            <h3>Vitrine Virtual Unificada</h3>
+                            <p>Use sua página de bio para criar uma vitrine com seus principais produtos, serviços e conteúdos. Tudo em um só link.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="target"></i></div>
+                            <h3>Anúncios que Convertem</h3>
+                            <p>Organize seus anúncios do Facebook Marketplace e outros canais. Entenda o que funciona e otimize seus resultados.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="message-circle"></i></div>
+                            <h3>Contato Direto e Rápido</h3>
+                            <p>Com o gerador de links para WhatsApp, você remove barreiras e facilita o contato de novos clientes interessados.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="diferenciais" class="features-section reveal">
+                <div class="landing-container">
+                    <h2 style="text-align: center;">Por que escolher a Zandrix?</h2>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="zap"></i></div>
+                            <h3>Velocidade Extrema</h3>
+                            <p>Nossas otimizações garantem que sua plataforma carregue em milissegundos, retendo mais usuários.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="shield-check"></i></div>
+                            <h3>Segurança Robusta</h3>
+                            <p>Implementamos as melhores práticas de segurança para proteger seus dados e os de seus clientes.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="icon"><i data-lucide="scaling"></i></div>
+                            <h3>Escalabilidade</h3>
+                            <p>Construímos sua plataforma pronta para crescer, suportando de 10 a 100.000 usuários sem problemas.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="faq" class="faq-section reveal">
+                <div class="landing-container" style="max-width: 800px;">
+                    <h2 style="text-align: center; margin-bottom: 3rem;">Perguntas Frequentes</h2>
+                    <div class="faq-accordion">
+                        <!-- Itens do FAQ serão inseridos aqui pelo JS -->
+                    </div>
+                </div>
+            </section>
+
+            <section id="tech-stack" class="tech-stack-section reveal">
+                <h2 style="text-align: center; margin-bottom: 3rem;">Tecnologias que Impulsionam</h2>
+                <div style="overflow: hidden;">
+                    <div class="tech-carousel" id="tech-carousel-container">
+                        <!-- Items will be injected by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <section id="blog" class="features-section reveal">
+                <div class="landing-container">
+                    <h2 style="text-align: center;">Últimas do Blog Zandrix</h2>
+                    <div class="features-grid">
+                        <div class="feature-card" style="padding: 0; overflow: hidden;">
+                            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=500&q=60" style="width: 100%; height: 200px; object-fit: cover;">
+                            <div style="padding: 1.5rem;">
+                                <span class="badge badge-active" style="margin-bottom: 0.5rem; display: inline-block;">Marketing</span>
+                                <h3>Como escalar suas vendas no Marketplace</h3>
+                                <p class="text-muted" style="font-size: 0.9rem;">Estratégias validadas para aumentar sua conversão em até 300% usando nossa plataforma.</p>
+                                <button class="btn btn-ghost" style="margin-top: 1rem; padding-left: 0;">Ler Mais <i data-lucide="arrow-right" style="width: 16px;"></i></button>
+                            </div>
+                        </div>
+                        <div class="feature-card" style="padding: 0; overflow: hidden;">
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=500&q=60" style="width: 100%; height: 200px; object-fit: cover;">
+                            <div style="padding: 1.5rem;">
+                                <span class="badge badge-active" style="margin-bottom: 0.5rem; display: inline-block;">Tecnologia</span>
+                                <h3>O Futuro das Bios Digitais</h3>
+                                <p class="text-muted" style="font-size: 0.9rem;">Por que ter apenas um link na bio é coisa do passado e como criar um mini-site poderoso.</p>
+                                <button class="btn btn-ghost" style="margin-top: 1rem; padding-left: 0;">Ler Mais <i data-lucide="arrow-right" style="width: 16px;"></i></button>
+                            </div>
+                        </div>
+                        <div class="feature-card" style="padding: 0; overflow: hidden;">
+                            <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=500&q=60" style="width: 100%; height: 200px; object-fit: cover;">
+                            <div style="padding: 1.5rem;">
+                                <span class="badge badge-active" style="margin-bottom: 0.5rem; display: inline-block;">Comunidade</span>
+                                <h3>Networking que Gera Negócios</h3>
+                                <p class="text-muted" style="font-size: 0.9rem;">Histórias reais de membros da comunidade Zandrix que fecharam grandes parcerias.</p>
+                                <button class="btn btn-ghost" style="margin-top: 1rem; padding-left: 0;">Ler Mais <i data-lucide="arrow-right" style="width: 16px;"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="newsletter" class="contact-section reveal" style="background: linear-gradient(to right, #0a0a0a, #1a1a1a); padding: 4rem 0;">
+                <div class="landing-container" style="text-align: center;">
+                    <i data-lucide="mail" style="width: 48px; height: 48px; color: var(--color-primary); margin-bottom: 1rem;"></i>
+                    <h2 style="text-align: center;">Fique por dentro das novidades</h2>
+                    <p class="text-muted" style="max-width: 500px; margin: auto; margin-bottom: 2rem;">
+                        Receba dicas exclusivas de marketing, atualizações da plataforma e ofertas especiais diretamente no seu e-mail.
+                    </p>
+                    <div style="display: flex; gap: 1rem; max-width: 400px; margin: auto; flex-wrap: wrap;">
+                        <input type="email" placeholder="Seu melhor e-mail" style="flex: 1; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--color-border); background: var(--color-bg); color: white;">
+                        <button class="btn btn-primary" style="white-space: nowrap;">Inscrever-se</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="contact" class="contact-section reveal">
+                <div class="landing-container" style="text-align: center;">
+                    <h2 style="text-align: center;">Pronto para Começar?</h2>
+                    <p class="text-muted" style="max-width: 500px; margin: auto; margin-bottom: 2rem;">
+                        Crie sua conta gratuita e junte-se a centenas de empreendedores que estão otimizando seu marketing digital.
+                    </p>
+                    <button class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.125rem;" onclick="openAuthModal('register')">
+                        Criar Minha Conta Agora
+                    </button>
+                </div>
+            </section>
+
+
+            <footer class="landing-footer">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
+                    <div class="logo">
+                        <img src="https://i.imgur.com/w28Wu0f.png" alt="Logo" class="logo-icon">
+                        Zandrix
+                    </div>
+                    <div class="social-links">
+                        <a href="#" target="_blank" title="Instagram"><i data-lucide="instagram"></i></a>
+                        <a href="#" target="_blank" title="Facebook"><i data-lucide="facebook"></i></a>
+                        <a href="https://wa.me/5533998154570" target="_blank" title="WhatsApp"><i data-lucide="message-circle"></i></a>
+                    </div>
+                    <p>© 2024 Zandrix. Todos os direitos reservados.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/5533998154570?text=Ol%C3%A1%2C%20vim%20pela%20plataforma%20Zandrix%20e%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es." class="whatsapp-float" target="_blank">
+        <i data-lucide="message-circle"></i>
+    </a>
+
+    <!-- Canvas para o fundo de partículas -->
+    <canvas id="particles-bg"></canvas>
+
+    <!-- Container para Notificações -->
+    <div id="notification-container"></div>
+
+    <!-- ================================================== -->
+    <!--                  MODAL DE AUTENTICAÇÃO             -->
+    <!-- ================================================== -->
+    <div id="auth-modal" class="auth-modal">
+        <form id="login-form" class="auth-form">
+            <button type="button" class="btn btn-ghost close-btn" onclick="closeAuthModal()">
+                <i data-lucide="x"></i>
+            </button>
+            <h2>Entrar na Plataforma</h2>
+            <div class="input-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" placeholder="seu@email.com" required>
+            </div>
+            <div class="input-group">
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" placeholder="Sua senha" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Entrar</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+                Não tem uma conta? <a href="#" onclick="switchAuthForm('register')" style="color: var(--color-primary);">Cadastre-se</a>
+            </p>
+        </form>
+
+        <form id="register-form" class="auth-form" style="display: none;">
+            <button type="button" class="btn btn-ghost close-btn" onclick="closeAuthModal()">
+                <i data-lucide="x"></i>
+            </button>
+            <h2>Criar Nova Conta</h2>
+            <div class="input-group">
+                <label for="register-name">Nome Completo</label>
+                <input type="text" id="register-name" required>
+            </div>
+            <div class="input-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" required>
+            </div>
+            <div class="input-group">
+                <label for="register-password">Senha</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Criar Conta</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+                Já tem uma conta? <a href="#" onclick="switchAuthForm('login')" style="color: var(--color-primary);">Faça Login</a>
+            </p>
+        </form>
+    </div>
+
+    <!-- ================================================== -->
+    <!--                  APLICAÇÃO AUTENTICADA             -->
+    <!-- ================================================== -->
+    <div id="app">
+        <div class="app-layout">
+            <div id="mobile-overlay" class="mobile-overlay" onclick="toggleSidebar()"></div>
+            <aside id="sidebar" class="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <img src="https://i.imgur.com/w28Wu0f.png" alt="Logo" class="logo-icon">
+                        Zandrix
+                    </div>
+                </div>
+                <nav>
+                    <button class="nav-btn active" data-view="dashboard">
+                        <i data-lucide="layout-dashboard"></i> Dashboard
+                    </button>
+                    <button class="nav-btn" data-view="ads">
+                        <i data-lucide="megaphone"></i> Meus Anúncios
+                    </button>
+                    <button class="nav-btn" data-view="marketplace">
+                        <i data-lucide="store"></i> Marketplace
+                    </button>
+                    <button class="nav-btn" data-view="bio">
+                        <i data-lucide="link"></i> Minha Bio
+                    </button>
+                    <button class="nav-btn" data-view="whatsapp">
+                        <i data-lucide="message-circle"></i> Links WhatsApp
+                    </button>
+                    <button class="nav-btn" data-view="community">
+                        <i data-lucide="users"></i> Comunidade
+                    </button>
+                    <button class="nav-btn" data-view="settings">
+                        <i data-lucide="settings"></i> Configurações
+                    </button>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-profile">
+                        <img id="user-avatar" src="" alt="User Avatar">
+                        <div>
+                            <div id="user-name" class="name"></div>
+                            <div id="user-email" class="email"></div>
+                        </div>
+                    </div>
+                    <button id="logout-btn" class="btn btn-ghost" style="width: 100%; justify-content: flex-start; color: #f87171;">
+                        <i data-lucide="log-out"></i> Sair
+                    </button>
+                </div>
+            </aside>
+
+            <div class="main-content">
+                <header class="topbar">
+                    <button class="btn btn-ghost menu-btn" onclick="toggleSidebar()" style="display: none;">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <h2 id="view-title" style="margin: 0; font-size: 1.25rem; flex-grow: 1; text-align: center;">Dashboard</h2>
+                </header>
+                <div class="view-container">
+                    <!-- As views serão injetadas aqui pelo JS -->
+                    <div id="view-dashboard" class="view active"></div>
+                    <div id="view-ads" class="view"></div>
+                    <div id="view-marketplace" class="view"></div>
+                    <div id="view-bio" class="view"></div>
+                    <div id="view-whatsapp" class="view"></div>
+                    <div id="view-community" class="view"></div>
+                    <div id="view-settings" class="view"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container para Notificações -->
+    <div id="notification-container"></div>
+
+    <!-- ================================================== -->
+    <!--                  MODAIS DA APLICAÇÃO               -->
+    <!-- ================================================== -->
+    <!-- Modal para Criar/Editar Anúncio -->
+    <div id="ad-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeAdModal()">&times;</span>
+            <h2 id="ad-modal-title">Criar Novo Anúncio</h2>
+            <form id="ad-form" style="max-height: 70vh; overflow-y: auto; padding-right: 1rem;">
+                <input type="hidden" id="ad-id">
+                <div class="input-group"><label for="ad-title">Título do Anúncio</label><input type="text" id="ad-title" required></div>
+                <div class="input-group"><label for="ad-desc">Descrição</label><textarea id="ad-desc" rows="4" style="height: auto; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem; width: 100%;"></textarea></div>
+                <div class="input-group"><label for="ad-url">Link do Site/Produto</label><input type="url" id="ad-url" required></div>
+                <div class="input-group"><label for="ad-price">Preço (R$)</label><input type="number" step="0.01" id="ad-price" required></div>
+                <div class="input-group"><label for="ad-status">Status</label><select id="ad-status" style="width: 100%; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem;"><option value="active">Ativo</option><option value="inactive">Inativo</option><option value="draft">Rascunho</option></select></div>
+                <div class="input-group"><label for="ad-photos">Fotos (múltiplas)</label><input type="file" id="ad-photos" multiple accept="image/*"><div id="ad-image-preview"></div></div>
+                <div class="input-group"><label for="ad-videos">Vídeos (múltiplos)</label><input type="file" id="ad-videos" multiple accept="video/*"><div id="ad-video-preview"></div></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Anúncio</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Detalhes do Anúncio -->
+    <div id="ad-details-modal" class="modal">
+        <div class="modal-content" id="ad-details-content" style="max-height: 80vh; overflow-y: auto;">
+            <!-- Conteúdo injetado via JS -->
+        </div>
+    </div>
+
+
+    <script>
+    // --- 1. ESTADO DA APLICAÇÃO E INICIALIZAÇÃO ---
+    let users = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+    let currentUser = JSON.parse(localStorage.getItem('zandrix_current_session')) || null;
+    let ads = JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [];
+    let bio = JSON.parse(localStorage.getItem('zandrix_bio_v2')) || {
+        username: 'seunome',
+        displayName: 'Seu Nome',
+        bio: 'Sua bio personalizada aqui.',
+        avatar: 'https://i.pravatar.cc/150',
+        bgColor: '#000000',
+        textColor: '#ffffff',
+        buttonStyle: 'rounded',
+        links: [
+            { id: Date.now(), title: 'Meu Site', url: '#' }
+        ]
+    };
+    let whatsappLinks = JSON.parse(localStorage.getItem('zandrix_whatsapp_links_v2')) || [];
+    let communityMessages = JSON.parse(localStorage.getItem('zandrix_community_messages_v2')) || [
+        { id: 1, userId: 'u2', userName: 'Ana', userAvatar: 'https://i.pravatar.cc/150?u=ana', type: 'text', content: 'Alguém tem dica de imagem boa para anúncio de estética?', timestamp: new Date(Date.now() - 1000 * 60 * 5), likes: [] },
+        { id: 2, userId: 'u3', userName: 'Carlos', userAvatar: 'https://i.pravatar.cc/150?u=carlos', type: 'text', content: 'Tenta usar o Unsplash ou Pexels, sempre acho coisa boa lá!', timestamp: new Date(Date.now() - 1000 * 60 * 3), likes: ['u1'] },
+    ];
+    let replyingTo = null;
+
+
+    // --- FUNÇÕES UTILITÁRIAS ---
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notification-container');
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
+        notif.innerHTML = `
+            <div style="flex: 1;">${message}</div>
+            <button onclick="this.parentElement.remove()" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px;">&times;</button>
+        `;
+        container.appendChild(notif);
+        setTimeout(() => {
+            notif.style.animation = 'fadeOut 0.5s ease-in forwards';
+            setTimeout(() => notif.remove(), 500);
+        }, 5000);
+    }
+
+
+    // --- 2. LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO ---
+    
+    function openAuthModal(form) {
+        document.getElementById('auth-modal').style.display = 'flex';
+        switchAuthForm(form);
+    }
+
+    function closeAuthModal() {
+        document.getElementById('auth-modal').style.display = 'none';
+    }
+
+    function switchAuthForm(form) {
+        if (form === 'login') {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        } else {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        }
+    }
+
+    function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        const user = users.find(u => u.email === email && u.password === password);
+
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
+            loginSuccess();
+        } else {
+            showNotification('Email ou senha incorretos.', 'error');
+        }
+    }
+
+    function handleRegister(e) {
+        e.preventDefault();
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+
+        if (users.find(u => u.email === email)) {
+            showNotification('Este email já está cadastrado.', 'error');
+            return;
+        }
+
+        const newUser = {
+            id: 'u' + Date.now(),
+            name: name,
+            email: email,
+            password: password,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+        };
+
+        users.push(newUser);
+        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+        
+        currentUser = newUser;
+        localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
+        
+        showNotification('Conta criada com sucesso!');
+        loginSuccess();
+    }
+
+    function loginSuccess() {
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        
+        updateUserUI();
+        navigateTo('dashboard');
+    }
+
+    function handleLogout() {
+        currentUser = null;
+        localStorage.removeItem('zandrix_current_session');
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('landing-page').style.display = 'flex';
+    }
+
+    function updateUserUI() {
+        if (currentUser) {
+            document.getElementById('user-avatar').src = currentUser.avatar;
+            document.getElementById('user-name').textContent = currentUser.name;
+            document.getElementById('user-email').textContent = currentUser.email;
+        }
+    }
+
+    function navigateTo(viewId) {
+        // Esconde todas as views
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        // Mostra a view correta
+        document.getElementById(`view-${viewId}`).classList.add('active');
+        
+        // Atualiza o título
+        const viewTitle = document.querySelector(`.nav-btn[data-view="${viewId}"]`).textContent.trim();
+        document.getElementById('view-title').textContent = viewTitle;
+
+        // Chama a função de renderização específica
+        switch(viewId) {
+            case 'dashboard': renderDashboardView(); break;
+            case 'ads': renderAdsView(); break;
+            case 'marketplace': renderMarketplaceView(); break;
+            case 'bio': renderBioView(); break;
+            case 'whatsapp': renderWhatsAppView(); break;
+            case 'community': renderCommunityView(); break;
+            case 'settings': renderSettingsView(); break;
+        }
+    }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('mobile-overlay').classList.toggle('open');
+    }
+
+    // --- 3. RENDERIZAÇÃO DAS VIEWS ---
+
+    function renderDashboardView() {
+        const container = document.getElementById('view-dashboard');
+        const stats = {
+            totalAds: ads.length,
+            totalClicks: ads.reduce((acc, ad) => acc + ad.clicks, 0),
+            totalImpressions: ads.reduce((acc, ad) => acc + ad.impressions, 0),
+            avgConversion: '2.4%'
+        };
+
+        const chartData = ads.slice(-7).map(ad => ({ 
+            name: ad.title.substring(0, 10) + '...', 
+            cliques: ad.clicks || 0,
+            impressoes: ad.impressions || 0 
+        }));
+
+        container.innerHTML = `
+            <h2 style="border: none; margin-bottom: 1rem;">Dashboard</h2>
+            <div class="stats-grid">
+                <div class="card stat-card"><div><p class="text-muted">Total Anúncios</p><p class="value">${stats.totalAds}</p></div><div class="icon" style="color: var(--color-primary);"><i data-lucide="megaphone"></i></div></div>
+                <div class="card stat-card"><div><p class="text-muted">Cliques Totais</p><p class="value">${stats.totalClicks.toLocaleString()}</p></div><div class="icon" style="color: #10b981;"><i data-lucide="mouse-pointer-click"></i></div></div>
+                <div class="card stat-card"><div><p class="text-muted">Impressões</p><p class="value">${stats.totalImpressions.toLocaleString()}</p></div><div class="icon" style="color: #3b82f6;"><i data-lucide="eye"></i></div></div>
+                <div class="card stat-card"><div><p class="text-muted">Conversão Média</p><p class="value">${stats.avgConversion}</p></div><div class="icon" style="color: #f97316;"><i data-lucide="trending-up"></i></div></div>
+            </div>
+            <div class="charts-grid">
+                <div class="card"><h3 class="mb-4">Performance (30 dias)</h3><canvas id="perfChart"></canvas></div>
+                <div class="card"><h3 class="mb-4">Top Anúncios</h3><div class="top-ads-list">${ads.slice(0, 3).map(ad => `
+                    <div class="ad-item">
+                        <span>${ad.title}</span>
+                        <span class="badge badge-${ad.status}">${ad.status}</span>
+                    </div>`).join('')}
+                </div></div>
+            </div>
+        `;
+        lucide.createIcons(); // Re-render icons
+
+        // Renderizar Gráfico
+        const perfCtx = document.getElementById('perfChart').getContext('2d');
+        new Chart(perfCtx, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.name),
+                datasets: [
+                    { label: 'Cliques', data: chartData.map(d => d.cliques), backgroundColor: '#3b82f6' },
+                    { label: 'Impressões', data: chartData.map(d => d.impressoes), backgroundColor: '#9d00ff' }
+                ]
+            },
+            options: { scales: { y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#a0a0a0' } } } }
+        });
+    }
+
+    function renderAdsView() {
+        const container = document.getElementById('view-ads');
+        container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>Meus Anúncios</h2>
+                <button class="btn btn-primary" onclick="openAdModal()"><i data-lucide="plus"></i> Criar Anúncio</button>
+            </div>
+            <div class="ads-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                ${ads.map(ad => `
+                    <div class="card ad-row">
+                        <div class="ad-info">
+                            <img src="${ad.image}" alt="${ad.title}">
+                            <div>
+                                <h3 style="font-size: 1.25rem;">${ad.title}</h3>
+                                <p class="text-muted">${ad.description}</p>
+                                <div class="ad-stats" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem;">
+                                    <span><i data-lucide="eye" style="width:14px; vertical-align: middle; margin-right: 4px;"></i> ${ad.impressions || 0}</span>
+                                    <span><i data-lucide="mouse-pointer-click" style="width:14px; vertical-align: middle; margin-right: 4px;"></i> ${ad.clicks || 0}</span>
+                                    <span style="color: var(--color-primary); font-weight: bold;">R$ ${ad.price.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ad-actions">
+                            <span class="badge badge-${ad.status}">${ad.status}</span>
+                            <button class="btn btn-ghost" onclick="openAdModal(${ad.id})"><i data-lucide="edit"></i></button>
+                            <button class="btn btn-ghost" style="color: #f87171;" onclick="deleteAd(${ad.id})"><i data-lucide="trash-2"></i></button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    function renderMarketplaceView() {
+        const container = document.getElementById('view-marketplace');
+        container.innerHTML = `
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2>Marketplace Zandrix</h2>
+                <p class="text-muted">Explore produtos digitais, serviços e oportunidades exclusivas.</p>
+                <div class="input-group" style="max-width: 500px; margin: 1.5rem auto 0;">
+                    <input type="search" id="marketplace-search" placeholder="🔎 Buscar por nome do produto..." oninput="filterMarketplace()" style="padding: 1rem; border-radius: 2rem; text-align: center; background: var(--color-bg-light); border: 1px solid var(--color-border);">
+                </div>
+            </div>
+            <div class="marketplace-grid" id="marketplace-list">
+                <!-- content will be rendered by filterMarketplace() -->
+            </div>
+        `;
+        filterMarketplace(); // Initial render
+    }
+
+    function renderBioView() {
+        const container = document.getElementById('view-bio');
+        container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>Editor de Bio</h2>
+                <div>
+                    <button class="btn btn-primary" style="background-color: #25D366; border: none; color: white;" onclick="openPublicBio()"><i data-lucide="copy"></i> Copiar Link da Bio</button>
+                    <button class="btn btn-ghost" onclick="saveBio()">Salvar Rascunho</button>
+                </div>
+            </div>
+            <div class="bio-manager-layout">
+                <div class="editor-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div class="card">
+                        <h3>Perfil</h3>
+                        <div class="input-group"><label>Nome de Usuário (URL)</label><input type="text" id="bio-username" oninput="updateBioPreview()" value="${bio.username}"></div>
+                        <div class="input-group"><label>Nome de Exibição</label><input type="text" id="bio-displayName" oninput="updateBioPreview()" value="${bio.displayName}"></div>
+                        <div class="input-group"><label>Bio</label><textarea id="bio-bio" oninput="updateBioPreview()" style="width: 100%; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem; height: 80px;">${bio.bio}</textarea></div>
+                        <div class="input-group"><label>Foto de Perfil</label><input type="file" id="bio-avatar-upload" accept="image/*"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Links <button class="btn btn-ghost" style="padding: 4px 8px; font-size: 12px;" onclick="addBioLink()">+ Adicionar</button></h3>
+                        <div id="bio-links-editor"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Customização</h3>
+                        <div class="input-group"><label>Cor de Fundo</label><input type="color" id="bio-bgColor" oninput="updateBioPreview()" value="${bio.bgColor}"></div>
+                        <div class="input-group"><label>Cor do Texto</label><input type="color" id="bio-textColor" oninput="updateBioPreview()" value="${bio.textColor}"></div>
+                    </div>
+                </div>
+                <div class="preview-column">
+                    <div class="bio-preview">
+                        <div class="bio-preview-screen" style="background-color: ${bio.bgColor}; color: ${bio.textColor};">
+                            <img src="${bio.avatar}" alt="Avatar">
+                            <h2>@${bio.username}</h2>
+                            <p style="white-space: pre-wrap;">${bio.bio}</p>
+                            <div class="links-container">
+                                ${bio.links.map(link => `<a href="#" class="bio-preview-link" style="color: ${bio.textColor}; border: 1px solid ${bio.textColor}40;">${link.title}</a>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        renderBioLinksEditor();
+
+        // Adiciona o listener para o upload da foto da bio
+        document.getElementById('bio-avatar-upload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.querySelector('.bio-preview-screen img').src = e.target.result;
+                    // Salva temporariamente no objeto bio, para ser persistido com saveBio()
+                    bio.newAvatarData = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    function renderWhatsAppView() {
+        const container = document.getElementById('view-whatsapp');
+        container.innerHTML = `
+            <div class="card" style="max-width: 600px; margin: auto;">
+                <h2>Gerador de Link para WhatsApp</h2>
+                <div class="input-group">
+                    <label>Número com DDD</label>
+                    <input type="tel" id="wa-phone" placeholder="5511999998888">
+                </div>
+                <div class="input-group">
+                    <label>Mensagem (Opcional)</label>
+                    <textarea id="wa-message" style="width: 100%; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem; height: 100px;" placeholder="Olá, gostaria de mais informações..."></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="generateWhatsAppLink()">Gerar Link</button>
+            </div>
+        `;
+    }
+
+    function renderSettingsView() {
+        const container = document.getElementById('view-settings');
+        if (!currentUser) return;
+
+        container.innerHTML = `
+            <div class="card" style="max-width: 600px; margin: auto;">
+                <h2>Configurações do Perfil</h2>
+                <form id="settings-form">
+                    <div class="input-group">
+                        <label for="settings-name">Seu Nome</label>
+                        <input type="text" id="settings-name" value="${currentUser.name}">
+                    </div>
+                    <div class="input-group">
+                        <label for="settings-avatar">Sua Foto de Perfil</label>
+                        <input type="file" id="settings-avatar-upload" accept="image/*">
+                        <img id="settings-avatar-preview" src="${currentUser.avatar}" style="width: 80px; height: 80px; border-radius: 50%; margin-top: 10px; border: 2px solid var(--color-primary);">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Configurações</button>
+                </form>
+            </div>
+        `;
+
+        document.getElementById('settings-avatar-upload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('settings-avatar-preview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('settings-form').addEventListener('submit', saveUserSettings);
+    }
+
+    function renderCommunityView() {
+        const container = document.getElementById('view-community');
+        container.innerHTML = `
+            <div class="card" style="padding: 0; overflow: hidden; height: 85vh; display: flex; flex-direction: column;">
+                <div style="padding: 15px; background: #202c33; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #2f3b43;">
+                    <div style="width: 40px; height: 40px; background: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">Z</div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: #e9edef;">Comunidade Zandrix</h3>
+                        <span style="font-size: 12px; color: #8696a0;">Grupo VIP • ${communityMessages.length} mensagens</span>
+                    </div>
+                </div>
+                <div id="chat-messages"></div>
+                <div id="reply-preview-bar">
+                    <div style="display: flex; flex-direction: column; overflow: hidden; margin-right: 10px;">
+                        <span id="reply-to-user" style="color: var(--color-secondary); font-weight: bold; font-size: 12px;"></span>
+                        <span id="reply-to-text" style="color: #d1d7db; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
+                    </div>
+                    <button onclick="cancelReply()" style="background: none; border: none; color: #8696a0; cursor: pointer;"><i data-lucide="x"></i></button>
+                </div>
+                <div id="chat-input-area" style="padding: 10px; background: #202c33; display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="chat-message-input" placeholder="Mensagem" style="flex: 1; margin: 0; background: #2a3942; border: none; border-radius: 8px; color: #e9edef; padding: 12px;">
+                    <button id="send-chat-message" class="btn" style="background: #00a884; color: white; border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; align-items: center; justify-content: center;"><i data-lucide="send"></i></button>
+                    <button id="record-audio-btn" class="btn btn-ghost" style="color: #8696a0;"><i data-lucide="mic"></i></button>
+                </div>
+            </div>
+        `;
+        renderChatMessages();
+        lucide.createIcons();
+
+        document.getElementById('send-chat-message').onclick = sendTextMessage;
+        document.getElementById('chat-message-input').onkeypress = (e) => {
+            if (e.key === 'Enter') sendTextMessage();
+        };
+        document.getElementById('record-audio-btn').onclick = toggleAudioRecording;
+    }
+
+    function renderChatMessages() {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) return;
+        messagesContainer.innerHTML = communityMessages.map(msg => {
+            const isSent = msg.userId === currentUser.id;
+            const messageContent = msg.type === 'audio'
+                ? `<audio controls src="${msg.content}"></audio>`
+                : `<p>${msg.content}</p>`;
+            
+            const isLikedByMe = msg.likes?.includes(currentUser.id);
+            const likeCount = msg.likes?.length || 0;
+
+            // Logic for replyTo rendering
+            let replyContent = '';
+            if (msg.replyTo) {
+                replyContent = `
+                    <div class="quoted-message">
+                        <span class="quoted-user">${msg.replyTo.userName}</span>
+                        <span class="quoted-text">${msg.replyTo.type === 'audio' ? '🎤 Áudio' : msg.replyTo.content}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="chat-message ${isSent ? 'sent' : 'received'}">
+                    <img src="${msg.userAvatar}" class="chat-avatar" alt="${msg.userName}">
+                    <div style="max-width: 100%;">
+                        ${!isSent ? `<div class="user-info" style="margin-left: 5px;"><span class="name" style="color: ${stringToColor(msg.userName)}">${msg.userName}</span></div>` : ''}
+                        <div class="message-bubble">
+                            ${replyContent}
+                            ${messageContent}
+                            <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        </div>
+                        <div class="message-actions">
+                            <button class="like-btn ${isLikedByMe ? 'liked' : ''}" onclick="toggleLike(${msg.id})">
+                                <i data-lucide="heart" style="width: 12px; height: 12px; ${isLikedByMe ? 'fill: currentColor;' : ''}"></i>
+                                <span>${likeCount > 0 ? likeCount : ''}</span>
+                            </button>
+                            <button class="reply-btn" onclick="initiateReply(${msg.id})">
+                                <i data-lucide="reply" style="width: 12px; height: 12px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        lucide.createIcons();
+    }
+
+    // --- 4. FUNÇÕES CRUD E EVENT LISTENERS ---
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        initLandingPage(); // Initialize new landing page features
+
+        // Auth
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('register-form').addEventListener('submit', handleRegister);
+        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+        
+        // Navegação
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Ativa o botão clicado
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Renderiza a view
+                const viewId = btn.getAttribute('data-view');
+                navigateTo(viewId);
+
+                // Fecha o sidebar no mobile
+                if (window.innerWidth <= 1024) {
+                    toggleSidebar();
+                }
+            });
+        });
+
+        // Ad Form
+        document.getElementById('ad-form').addEventListener('submit', handleAdFormSubmit);
+    });
+
+    // --- Funções de Anúncios (Ads) ---
+    function openAdModal(id = null) {
+        const modal = document.getElementById('ad-modal');
+        const form = document.getElementById('ad-form');
+        form.reset();
+        document.getElementById('ad-image-preview').innerHTML = '';
+        document.getElementById('ad-video-preview').innerHTML = '';
+        
+        if (id) {
+            const ad = ads.find(a => a.id == id);
+            if (ad) {
+                document.getElementById('ad-modal-title').innerText = 'Editar Anúncio';
+                document.getElementById('ad-id').value = ad.id;
+                document.getElementById('ad-title').value = ad.title;
+                document.getElementById('ad-desc').value = ad.description;
+                document.getElementById('ad-url').value = ad.url;
+                document.getElementById('ad-price').value = ad.price;
+                document.getElementById('ad-status').value = ad.status;
+            }
+        } else {
+            document.getElementById('ad-modal-title').innerText = 'Criar Novo Anúncio';
+            document.getElementById('ad-id').value = '';
+        }
+        modal.style.display = 'block';
+    }
+
+    function closeAdModal() {
+        document.getElementById('ad-modal').style.display = 'none';
+    }
+
+    function deleteAd(id) {
+        if (confirm("Tem certeza que deseja excluir este anúncio?")) {
+            ads = ads.filter(ad => ad.id !== id);
+            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            renderAdsView();
+            showNotification("Anúncio excluído com sucesso!");
+        }
+    }
+
+    async function handleAdFormSubmit(event) {
+        event.preventDefault();
+        const id = document.getElementById('ad-id').value;
+
+        const readFileAsBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        };
+
+        const photoFiles = Array.from(document.getElementById('ad-photos').files);
+        const videoFiles = Array.from(document.getElementById('ad-videos').files);
+
+        const photoData = await Promise.all(photoFiles.map(readFileAsBase64));
+        const videoData = await Promise.all(videoFiles.map(readFileAsBase64));
+
+        const adData = {
+            title: document.getElementById('ad-title').value,
+            description: document.getElementById('ad-desc').value,
+            url: document.getElementById('ad-url').value,
+            price: parseFloat(document.getElementById('ad-price').value),
+            status: document.getElementById('ad-status').value,
+            photos: photoData,
+            videos: videoData,
+            clicks: 0,
+            impressions: 0
+        };
+
+        if (id) { // Edit
+            const adIndex = ads.findIndex(a => a.id == id);
+            if (adIndex > -1) {
+                ads[adIndex] = { ...ads[adIndex], ...adData };
+            }
+        } else { // Create
+            adData.id = Date.now();
+            adData.createdAt = new Date().toISOString();
+            adData.image = adData.photos[0] || 'https://via.placeholder.com/400x200'; // Thumbnail
+            ads.push(adData);
+        }
+
+        localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+        closeAdModal();
+        renderAdsView();
+        renderMarketplaceView();
+        showNotification('Anúncio salvo com sucesso!');
+    }
+
+    function filterMarketplace() {
+        const searchTerm = document.getElementById('marketplace-search').value.toLowerCase();
+        const activeAds = ads.filter(ad => ad.status === 'active');
+        
+        const filteredAds = searchTerm
+            ? activeAds.filter(ad => ad.title.toLowerCase().includes(searchTerm) || ad.description.toLowerCase().includes(searchTerm))
+            : activeAds;
+        
+        renderMarketplaceGrid(filteredAds);
+    }
+
+    function renderMarketplaceGrid(adsToRender) {
+        const grid = document.getElementById('marketplace-list');
+        if (!grid) return;
+
+        if (adsToRender.length === 0) {
+            grid.innerHTML = `<p class="text-muted" style="text-align: center; grid-column: 1 / -1;">Nenhum item encontrado.</p>`;
+            return;
+        }
+
+        grid.innerHTML = adsToRender.map(ad => `
+            <div class="card marketplace-card" style="padding: 0; position: relative; border: 1px solid #333; background: linear-gradient(180deg, rgba(20,20,20,1) 0%, rgba(10,10,10,1) 100%);">
+                <div style="position: relative;">
+                    <img src="${ad.image}" alt="${ad.title}" style="height: 200px; filter: brightness(0.9);">
+                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold;">Novo</div>
+                </div>
+                <div class="content" style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #fff; font-weight: 600;">${ad.title}</h3>
+                    <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5; height: 40px; overflow: hidden;">${ad.description}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <p style="font-size: 0.8rem; color: var(--color-text-muted);">Preço</p>
+                            <p class="price" style="font-size: 1.5rem; color: #00ff88; text-shadow: 0 0 15px rgba(0,255,136,0.2);">R$ ${ad.price.toFixed(2)}</p>
+                        </div>
+                        <button class="btn btn-primary" style="border-radius: 8px; padding: 0.6rem 1.2rem; background: var(--color-primary); border: none;" onclick="showAdDetails(${ad.id})">Ver <i data-lucide="arrow-right" style="width: 16px;"></i></button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function showAdDetails(id) {
+        const ad = ads.find(a => a.id == id);
+        if (!ad) return;
+
+        const content = document.getElementById('ad-details-content');
+        content.innerHTML = `
+            <span class="close-modal-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</span>
+            <h2 style="color: var(--color-primary);">${ad.title}</h2>
+            <p class="text-muted" style="margin-bottom: 1rem;">${ad.description}</p>
+            <h3 style="margin-top: 1.5rem;">Fotos</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1rem;">
+                ${ad.photos.map(p => `<img src="${p}" style="max-height: 150px; border-radius: 8px;">`).join('') || '<p>Nenhuma foto.</p>'}
+            </div>
+            <h3 style="margin-top: 1.5rem;">Vídeos</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                ${ad.videos.map(v => `<video controls src="${v}" style="max-height: 200px; border-radius: 8px;"></video>`).join('') || '<p>Nenhum vídeo.</p>'}
+            </div>
+            <a href="${ad.url}" target="_blank" class="btn btn-primary" style="width: 100%;">Visitar Site - R$ ${ad.price.toFixed(2)}</a>
+        `;
+        document.getElementById('ad-details-modal').style.display = 'block';
+    }
+
+    // --- Funções da Bio (Linktree) ---
+    function renderBioLinksEditor() {
+        const container = document.getElementById('bio-links-editor');
+        if (!container) return;
+        container.innerHTML = bio.links.map((link, index) => `
+            <div class="input-group" style="display: flex; gap: 10px; align-items: center; background: var(--color-bg); padding: 10px; border-radius: 5px;">
+                <input type="text" placeholder="Título do Link" value="${link.title}" oninput="updateBioLink(${index}, 'title', this.value)" style="margin:0;">
+                <input type="url" placeholder="URL" value="${link.url}" oninput="updateBioLink(${index}, 'url', this.value)" style="margin:0;">
+                <button class="btn btn-ghost" style="color: #ef4444;" onclick="deleteBioLink(${index})"><i data-lucide="trash-2"></i></button>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function addBioLink() {
+        bio.links.push({ id: Date.now(), title: 'Novo Link', url: '#' });
+        renderBioLinksEditor();
+        updateBioPreview();
+    }
+
+    function deleteBioLink(index) {
+        bio.links.splice(index, 1);
+        renderBioLinksEditor();
+        updateBioPreview();
+    }
+
+    function updateBioLink(index, key, value) {
+        bio.links[index][key] = value;
+        updateBioPreview();
+    }
+
+    function updateBioPreview() {
+        bio.username = document.getElementById('bio-username').value;
+        bio.displayName = document.getElementById('bio-displayName').value;
+        bio.bio = document.getElementById('bio-bio').value;
+        bio.bgColor = document.getElementById('bio-bgColor').value;
+        bio.textColor = document.getElementById('bio-textColor').value;
+
+        const preview = document.querySelector('.bio-preview-screen');
+        if (!preview) return;
+        preview.style.backgroundColor = bio.bgColor;
+        preview.style.color = bio.textColor;
+        preview.querySelector('h2').innerText = `@${bio.username}`;
+        preview.querySelector('p').innerText = bio.bio;
+        
+        const linksContainer = preview.querySelector('.links-container');
+        linksContainer.innerHTML = bio.links.map(link => 
+            `<a href="#" class="bio-preview-link" style="color: ${bio.textColor}; border: 1px solid ${bio.textColor}40;">${link.title}</a>`
+        ).join('');
+    }
+
+    function saveBio() {
+        updateBioPreview(); // Garante que todos os dados do form estão no objeto bio
+        if (bio.newAvatarData) {
+            bio.avatar = bio.newAvatarData;
+            delete bio.newAvatarData; // Limpa o dado temporário
+        }
+
+        localStorage.setItem('zandrix_bio_v2', JSON.stringify(bio));
+        showNotification('Bio salva com sucesso!');
+    }
+
+    // Função auxiliar para gerar cores baseadas no nome (estilo WhatsApp)
+    function stringToColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+        return '#' + "00000".substring(0, 6 - c.length) + c;
+    }
+    
+    function openPublicBio() {
+        // 1. Garante que o objeto 'bio' está atualizado com os dados do formulário
+        updateBioPreview();
+        if (bio.newAvatarData) {
+            bio.avatar = bio.newAvatarData;
+        }
+
+        // 2. Stringify e Base64 encode (com suporte a UTF-8)
+        const bioString = JSON.stringify(bio);
+        const encodedBio = btoa(unescape(encodeURIComponent(bioString)));
+
+        // 3. Construa a URL final
+        const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+        const publicUrl = `${window.location.origin}${path}/bio.html#${encodedBio}`;
+
+        // 4. Copie para a área de transferência
+        navigator.clipboard.writeText(publicUrl).then(() => {
+            showNotification("✅ Link da sua Bio copiado! Cole no seu Instagram.");
+        }).catch(err => {
+            console.error('Erro ao copiar link: ', err);
+            showNotification("Erro ao copiar o link.", "error");
+        });
+    }
+
+    function generateWhatsAppLink() {
+        const phoneInput = document.getElementById('wa-phone');
+        const messageInput = document.getElementById('wa-message');
+        const phone = phoneInput.value.replace(/\D/g, '');
+        const message = messageInput.value;
+
+        if (!phone) {
+            showNotification('Por favor, insira um número de telefone.', 'error');
+            return;
+        }
+
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('Link do WhatsApp copiado!');
+            window.open(url, '_blank');
+        }).catch(err => {
+             window.open(url, '_blank');
+        });
+    }
+
+    // --- Funções de Configurações (Settings) ---
+    async function saveUserSettings(event) {
+        event.preventDefault();
+        const newName = document.getElementById('settings-name').value;
+        const avatarFile = document.getElementById('settings-avatar-upload').files[0];
+        
+        const updateAndSave = () => {
+            // Atualiza sessão atual
+            currentUser.name = newName;
+            localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
+            
+            // Atualiza usuário na lista geral
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex > -1) {
+                users[userIndex] = currentUser;
+                localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+            }
+            
+            updateUserUI();
+            showNotification('Configurações salvas!');
+        };
+
+        if (avatarFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentUser.avatar = e.target.result;
+                updateAndSave();
+            };
+            reader.readAsDataURL(avatarFile);
+        } else {
+            updateAndSave();
+        }
+    }
+
+    // --- Funções da Comunidade (Chat) ---
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    function sendTextMessage() {
+        const input = document.getElementById('chat-message-input');
+        const content = input.value.trim();
+        if (content) {
+            const message = {
+                id: Date.now(),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                userAvatar: currentUser.avatar,
+                type: 'text',
+                content: content,
+                timestamp: new Date(),
+                likes: [],
+                replyTo: replyingTo // Anexa a mensagem respondida, se houver
+            };
+            communityMessages.push(message);
+            localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+            cancelReply(); // Limpa o estado de resposta
+            renderChatMessages();
+            input.value = '';
+        }
+    }
+
+    function toggleLike(messageId) {
+        const message = communityMessages.find(m => m.id === messageId);
+        if (!message) return;
+
+        // Garante que a propriedade 'likes' exista
+        if (!message.likes) message.likes = [];
+
+        const userLikeIndex = message.likes.indexOf(currentUser.id);
+
+        if (userLikeIndex > -1) {
+            message.likes.splice(userLikeIndex, 1); // Unlike
+        } else {
+            message.likes.push(currentUser.id); // Like
+        }
+        localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+        renderChatMessages();
+    }
+
+    function initiateReply(id) {
+        const msg = communityMessages.find(m => m.id === id);
+        if (!msg) return;
+
+        replyingTo = {
+            id: msg.id,
+            userName: msg.userName,
+            content: msg.content,
+            type: msg.type
+        };
+
+        const previewBar = document.getElementById('reply-preview-bar');
+        if(previewBar) {
+            previewBar.style.display = 'flex';
+            document.getElementById('reply-to-user').textContent = "Respondendo a " + msg.userName;
+            document.getElementById('reply-to-text').textContent = msg.type === 'audio' ? '🎤 Áudio' : msg.content;
+            const input = document.getElementById('chat-message-input');
+            if(input) input.focus();
+        }
+    }
+
+    function cancelReply() {
+        replyingTo = null;
+        const previewBar = document.getElementById('reply-preview-bar');
+        if(previewBar) previewBar.style.display = 'none';
+    }
+
+    async function toggleAudioRecording() {
+        const recordBtn = document.getElementById('record-audio-btn');
+        if (isRecording) {
+            mediaRecorder.stop();
+            recordBtn.innerHTML = '<i data-lucide="mic"></i>';
+            lucide.createIcons();
+            isRecording = false;
+        } else {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+            recordBtn.innerHTML = '<i data-lucide="stop-circle"></i>';
+            recordBtn.style.color = 'red';
+            lucide.createIcons();
+            isRecording = true;
+
+            mediaRecorder.addEventListener("dataavailable", event => {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", () => {
+                const audioBlob = new Blob(audioChunks);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const audioUrl = e.target.result; // Base64 audio data
+                    const message = { id: Date.now(), userId: currentUser.id, userName: currentUser.name, userAvatar: currentUser.avatar, type: 'audio', content: audioUrl, timestamp: new Date(), likes: [], replyTo: replyingTo };
+                    communityMessages.push(message);
+                    localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+                    cancelReply();
+                    renderChatMessages();
+                    audioChunks = [];
+                    recordBtn.style.color = '';
+                };
+                reader.readAsDataURL(audioBlob);
+            });
+        }
+    }
+
+    // Number Counter Logic
+    function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        if (!obj) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start) + "+";
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                obj.innerHTML = end + "+";
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function initParticleBackground() {
+        const canvas = document.getElementById('particles-bg');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const logoImg = new Image();
+        logoImg.src = 'https://i.imgur.com/w28Wu0f.png'; // Seu logo
+
+        let particles = [];
+        const particleCount = 40;
+
+        const createParticles = () => {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    speed: Math.random() * 0.5 + 0.2,
+                    size: Math.random() * 25 + 15,
+                    opacity: Math.random() * 0.3 + 0.05
+                });
+            }
+        };
+
+        const animateParticles = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.globalAlpha = p.opacity;
+                ctx.drawImage(logoImg, p.x, p.y, p.size, p.size);
+                p.y -= p.speed; // Move para cima
+                if (p.y < -p.size) {
+                    p.y = canvas.height;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+            ctx.globalAlpha = 1.0;
+            requestAnimationFrame(animateParticles);
+        };
+        
+        logoImg.onload = () => { createParticles(); animateParticles(); };
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight; createParticles();
+        });
+    }
+
+    // --- 5. LÓGICA DA NOVA LANDING PAGE ---
+
+    const testimonials = [
+        {
+            name: 'Juliana S.',
+            role: 'Influencer Digital',
+            avatar: 'https://i.pravatar.cc/150?u=juliana',
+            text: 'A Zandrix transformou a forma como eu apresento meus links! A página da bio é linda e super fácil de configurar. Meus seguidores adoraram.'
+        },
+        {
+            name: 'Marcos P.',
+            role: 'Dono de E-commerce',
+            avatar: 'https://i.pravatar.cc/150?u=marcos',
+            text: 'Finalmente um lugar para organizar meus anúncios do marketplace. A visão geral do dashboard me ajuda a saber o que está funcionando.'
+        },
+        {
+            name: 'Carla B.',
+            role: 'Empreendedora',
+            avatar: 'https://i.pravatar.cc/150?u=carla',
+            text: 'A comunidade é o grande diferencial. Já fiz parcerias incríveis por lá. É muito mais que uma ferramenta, é um ecossistema.'
+        }
+    ];
+
+    const faqs = [
+        {
+            question: 'A plataforma é realmente gratuita?',
+            answer: 'Sim! A Zandrix é 100% gratuita. Nosso objetivo é fornecer as melhores ferramentas para empreendedores digitais sem nenhum custo.'
+        },
+        {
+            question: 'Posso customizar minha página de Bio?',
+            answer: 'Com certeza! Você pode alterar cores, foto de perfil, nome de usuário e, claro, adicionar quantos links precisar para refletir a identidade da sua marca.'
+        },
+        {
+            question: 'Como funciona a comunidade?',
+            answer: 'É um chat em grupo, similar ao WhatsApp, onde todos os usuários da plataforma podem interagir, tirar dúvidas, compartilhar experiências e fazer networking.'
+        },
+        {
+            question: 'Meus dados estão seguros?',
+            answer: 'Sim. A plataforma utiliza o armazenamento local do seu navegador, o que significa que seus dados ficam no seu dispositivo. Para comunicação, usamos protocolos seguros.'
+        }
+    ];
+
+    function initLandingPage() {
+        initParticleBackground(); // Inicia o fundo de partículas
+
+        // Typewriter
+        const typewriterTarget = document.getElementById('typewriter-hero');
+        if (typewriterTarget) {
+            const text = "Centralize seus anúncios, crie bios incríveis e conecte-se com outros empreendedores.";
+            let i = 0;
+            function typeWriter() {
+                if (i < text.length) {
+                    typewriterTarget.innerHTML = text.substring(0, i + 1) + '<span style="opacity:0.5;">|</span>';
+                    i++;
+                    setTimeout(typeWriter, 50);
+                } else {
+                    typewriterTarget.innerHTML = text;
+                }
+            }
+            setTimeout(typeWriter, 500);
+        }
+
+        // Tech Stack Carousel
+        const techStack = [
+            { name: 'React', icon: 'react' },
+            { name: 'Node.js', icon: 'server' },
+            { name: 'JavaScript', icon: 'code' },
+            { name: 'HTML5', icon: 'file-code' },
+            { name: 'CSS3', icon: 'palette' },
+            { name: 'Chart.js', icon: 'bar-chart-2' },
+            { name: 'Segurança', icon: 'shield' },
+            { name: 'Otimização', icon: 'zap' },
+        ];
+        const techContainer = document.getElementById('tech-carousel-container');
+        if (techContainer) {
+            const techHTML = techStack.map(tech => `
+                <div class="tech-item"><i data-lucide="${tech.icon}"></i><span>${tech.name}</span></div>
+            `).join('');
+            techContainer.innerHTML = techHTML + techHTML; // Duplicate for seamless loop
+        }
+
+        // Testimonials
+        const track = document.querySelector('.testimonial-track');
+        if (track) {
+            track.innerHTML = testimonials.map(t => `<div class="testimonial-slide"><img src="${t.avatar}" alt="${t.name}"><p>"${t.text}"</p><strong>${t.name}</strong><div class="text-muted">${t.role}</div></div>`).join('');
+            const slides = document.querySelectorAll('.testimonial-slide');
+            let currentIndex = 0;
+            const updateCarousel = () => { track.style.transform = `translateX(-${currentIndex * 100}%)`; };
+            document.querySelector('.carousel-btn.next').addEventListener('click', () => { currentIndex = (currentIndex + 1) % slides.length; updateCarousel(); });
+            document.querySelector('.carousel-btn.prev').addEventListener('click', () => { currentIndex = (currentIndex - 1 + slides.length) % slides.length; updateCarousel(); });
+        }
+
+        // FAQ
+        const accordion = document.querySelector('.faq-accordion');
+        if (accordion) {
+            accordion.innerHTML = faqs.map(f => `<div class="faq-item"><button class="faq-question">${f.question}</button><div class="faq-answer"><p>${f.answer}</p></div></div>`).join('');
+            document.querySelectorAll('.faq-question').forEach(button => { button.addEventListener('click', () => button.parentElement.classList.toggle('active')); });
+        }
+        lucide.createIcons();
+
+        // Scroll Animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+
+                    // Trigger number counters if it's the results section
+                    if(entry.target.id === 'results') {
+                        animateValue("count-ads", 0, 500, 2000);
+                        animateValue("count-users", 0, 150, 2000);
+                        animateValue("count-links", 0, 2000, 2000);
+                        observer.unobserve(entry.target); // Anima só uma vez
+                    }
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('section.reveal').forEach(section => {
+            observer.observe(section);
+        });
+
+    }
+
+    </script>
+</body>
+</html>
