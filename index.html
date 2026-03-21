@@ -632,6 +632,10 @@
             justify-content: space-between;
         }
 
+        .menu-btn {
+            display: none;
+        }
+
         .view-container {
             flex-grow: 1;
             overflow-y: auto;
@@ -814,7 +818,7 @@
             }
             .sidebar.open { left: 0; }
             .main-content { margin-left: 0; }
-            .topbar .menu-btn { display: block; }
+            .menu-btn { display: inline-flex; }
             .charts-grid, .bio-manager-layout { grid-template-columns: 1fr; }
             .bio-preview { margin: 2rem auto 0; }
         }
@@ -1329,8 +1333,8 @@
 
             <div class="main-content">
                 <header class="topbar">
-                    <button class="btn btn-ghost menu-btn" onclick="toggleSidebar()" style="display: none;">
-                        <i data-lucide="menu"></i>
+                    <button class="btn btn-ghost menu-btn" onclick="toggleSidebar()">
+                        <i data-lucide="more-vertical"></i>
                     </button>
                     <h2 id="view-title" style="margin: 0; font-size: 1.25rem; flex-grow: 1; text-align: center;">Dashboard</h2>
                 </header>
