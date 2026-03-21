@@ -1509,20 +1509,37 @@
         
         try {
             // Tenta pegar o hash bruto da URL para evitar problemas de decodificação automática
-            const rawHash = window.location.href.split('#')[1];
-            const hash = rawHash || window.location.hash.substring(1);
-            if (!hash) throw new Error("Nenhum dado encontrado.");
+            const href = window.location.href;
+            const hashIndex = href.indexOf('#');
+            if (hashIndex === -1) throw new Error("Link incompleto (sem dados).");
+            
+            const hash = href.substring(hashIndex + 1);
+            if (!hash) throw new Error("Dados vazios.");
 
-            // Decode bio data
-            if (typeof pako === 'undefined') throw new Error("Biblioteca de compressão não carregou.");
-
-            const binaryString = atob(hash);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
+            let bio;
+            
+            // TENTATIVA 1: Novo Formato (Comprimido com Pako)
+            try {
+                if (typeof pako === 'undefined') throw new Error("Biblioteca de compressão não carregou.");
+                
+                const binaryString = atob(hash);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const decompressedString = pako.inflate(bytes, { to: 'string' });
+                bio = JSON.parse(decompressedString);
+            } catch (e) {
+                // TENTATIVA 2: Fallback para formato antigo (Links antigos)
+                console.warn("Tentando formato antigo...", e);
+                try {
+                    const decodedString = decodeURIComponent(escape(atob(hash)));
+                    bio = JSON.parse(decodedString);
+                } catch (legacyError) {
+                    // Se ambos falharem, relança o erro (normalizando string do Pako)
+                    throw (typeof e === 'string' ? new Error(e) : e);
+                }
             }
-            const decompressedString = pako.inflate(bytes, { to: 'string' });
-            const bio = JSON.parse(decompressedString);
 
             // Definir Título
             document.title = `${bio.displayName} | Zandrix Bio`;
@@ -1588,7 +1605,8 @@
 
         } catch (error) {
             console.error("Erro ao carregar a bio:", error);
-            document.body.innerHTML = `<div style="color: white; text-align: center; padding: 50px;"><h3>Link Inválido ou Corrompido</h3><p>Não foi possível ler os dados.</p><p><strong>Motivo provável:</strong> O link foi cortado ao copiar/colar.</p><p style="color: #aaa; font-size: 0.8rem;">Detalhe: ${error.message}</p><a href="?" style="color: var(--color-primary); text-decoration: none; margin-top: 20px; display: inline-block;">Voltar ao início</a></div>`;
+            const errorDetail = error.message || error.toString();
+            document.body.innerHTML = `<div style="color: white; text-align: center; padding: 50px; font-family: sans-serif;"><h3>Link Inválido</h3><p>Não foi possível carregar a Bio.</p><p><strong>Motivo:</strong> O link pode ter sido cortado ou é de uma versão antiga incompatível.</p><p style="color: #aaa; font-size: 0.8rem; background: #111; display: inline-block; padding: 5px 10px; border-radius: 4px; margin-top: 10px;">Erro: ${errorDetail}</p><br><a href="?" style="color: #fff; background-color: var(--color-primary); text-decoration: none; margin-top: 30px; display: inline-block; padding: 10px 20px; border-radius: 5px; font-weight: bold;">Voltar ao Editor</a></div>`;
             document.body.style.backgroundColor = '#000';
         }
     }
