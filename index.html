@@ -1483,7 +1483,9 @@
         document.body.innerHTML = '';
         
         try {
-            const hash = window.location.hash.substring(1);
+            // Tenta pegar o hash bruto da URL para evitar problemas de decodificação automática
+            const rawHash = window.location.href.split('#')[1];
+            const hash = rawHash || window.location.hash.substring(1);
             if (!hash) throw new Error("Nenhum dado encontrado.");
 
             // Decode bio data
@@ -1554,7 +1556,7 @@
 
         } catch (error) {
             console.error("Erro ao carregar a bio:", error);
-            document.body.innerHTML = '<div style="color: white; text-align: center; padding: 50px;"><h3>Erro ao carregar a página.</h3><p>O link pode estar inválido.</p><a href="?" style="color: #aaa;">Voltar ao início</a></div>';
+            document.body.innerHTML = `<div style="color: white; text-align: center; padding: 50px;"><h3>Link Inválido ou Incompleto</h3><p>Provavelmente o link foi cortado ao colar.</p><p style="color: #aaa; font-size: 0.8rem;">Erro técnico: ${error.message}</p><a href="?" style="color: var(--color-primary); text-decoration: none; margin-top: 20px; display: inline-block;">Voltar ao início</a></div>`;
             document.body.style.backgroundColor = '#000';
         }
     }
@@ -2264,6 +2266,11 @@
             // 2. Stringify e Base64 encode (com suporte a UTF-8)
             const bioString = JSON.stringify(bio);
             const encodedBio = btoa(unescape(encodeURIComponent(bioString)));
+
+            // VERIFICAÇÃO DE SEGURANÇA: Tamanho do Link
+            if (encodedBio.length > 30000) {
+                alert("⚠️ AVISO: Sua foto de perfil é muito pesada! Isso gera um link gigante que pode falhar ao copiar.\n\nDica: Use uma foto menor ou cole o link de uma imagem da internet para garantir que funcione.");
+            }
 
             // 3. Construa a URL final de forma robusta
             let url = window.location.href.split('#')[0].split('?')[0];
