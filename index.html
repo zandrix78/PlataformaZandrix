@@ -1426,6 +1426,37 @@
         }, 5000);
     }
 
+    function copyToClipboard(text, successMessage = "Copiado com sucesso!") {
+        // Tenta usar a API moderna primeiro
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(successMessage);
+            }).catch(err => {
+                // Se falhar (ex: contexto não seguro), usa o fallback
+                copyToClipboardFallback(text, successMessage);
+            });
+        } else {
+            copyToClipboardFallback(text, successMessage);
+        }
+    }
+
+    function copyToClipboardFallback(text, successMessage) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed"; // Evita rolar a página
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) showNotification(successMessage);
+            else prompt("Seu navegador bloqueou a cópia. Copie o link abaixo:", text);
+        } catch (err) {
+            prompt("Seu navegador bloqueou a cópia. Copie o link abaixo:", text);
+        }
+        document.body.removeChild(textArea);
+    }
 
     // --- 2. LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO ---
     
@@ -2125,13 +2156,7 @@
         const publicUrl = `${baseUrl}bio.html#${encodedBio}`;
 
         // 4. Copie para a área de transferência
-        navigator.clipboard.writeText(publicUrl).then(() => {
-            showNotification("✅ Link da sua Bio copiado! Cole no seu Instagram.");
-        }).catch(err => {
-            console.error('Erro ao copiar link: ', err);
-            // Fallback para navegadores que bloqueiam a cópia automática
-            prompt("Copie o link da sua Bio abaixo:", publicUrl);
-        });
+        copyToClipboard(publicUrl, "✅ Link da Bio copiado! Cole no Instagram.");
     }
 
     function generateWhatsAppLink() {
@@ -2147,12 +2172,8 @@
 
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
         
-        navigator.clipboard.writeText(url).then(() => {
-            showNotification('Link do WhatsApp copiado!');
-            window.open(url, '_blank');
-        }).catch(err => {
-             window.open(url, '_blank');
-        });
+        copyToClipboard(url, 'Link do WhatsApp copiado!');
+        setTimeout(() => window.open(url, '_blank'), 1500);
     }
 
     // --- Funções de Configurações (Settings) ---
