@@ -1481,10 +1481,12 @@
 
     function handleLogin(e) {
         e.preventDefault();
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
+        // Normaliza (remove espaços e coloca em minúsculo) para evitar erros de digitação
+        const email = document.getElementById('login-email').value.trim().toLowerCase();
+        const password = document.getElementById('login-password').value.trim(); // Remove espaços extras da senha também
 
-        const user = users.find(u => u.email === email && u.password === password);
+        // Busca robusta: compara email normalizado para garantir que ache o usuário
+        const user = users.find(u => u.email.trim().toLowerCase() === email && u.password === password);
 
         if (user) {
             currentUser = user;
@@ -1498,10 +1500,10 @@
     function handleRegister(e) {
         e.preventDefault();
         const name = document.getElementById('register-name').value;
-        const email = document.getElementById('register-email').value;
+        const email = document.getElementById('register-email').value.trim().toLowerCase(); // Salva sempre limpo
         const password = document.getElementById('register-password').value;
 
-        if (users.find(u => u.email === email)) {
+        if (users.find(u => u.email.trim().toLowerCase() === email)) {
             showNotification('Este email já está cadastrado.', 'error');
             return;
         }
