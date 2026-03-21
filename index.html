@@ -8,6 +8,7 @@
     <!-- Dependências Externas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
     <style>
         /* --- 1. CONFIGURAÇÃO GERAL E VARIÁVEIS --- */
@@ -1478,7 +1479,7 @@
         textarea.select();
     }
 
-    function compressImage(base64Str, maxWidth = 300, quality = 0.7) {
+    function compressImage(base64Str, maxWidth = 200, quality = 0.6) {
         return new Promise((resolve) => {
             const img = new Image();
             img.src = base64Str;
@@ -1513,8 +1514,9 @@
             if (!hash) throw new Error("Nenhum dado encontrado.");
 
             // Decode bio data
-            const decodedString = decodeURIComponent(escape(atob(hash)));
-            const bio = JSON.parse(decodedString);
+            const compressedString = atob(hash);
+            const decompressedString = pako.inflate(compressedString, { to: 'string' });
+            const bio = JSON.parse(decompressedString);
 
             // Definir Título
             document.title = `${bio.displayName} | Zandrix Bio`;
@@ -1580,7 +1582,7 @@
 
         } catch (error) {
             console.error("Erro ao carregar a bio:", error);
-            document.body.innerHTML = `<div style="color: white; text-align: center; padding: 50px;"><h3>Link Inválido ou Incompleto</h3><p>O link pode ter sido cortado.</p><p><strong>Dica:</strong> Se você usou uma foto muito pesada, tente editá-la e gerar o link novamente.</p><p style="color: #aaa; font-size: 0.8rem;">Erro técnico: ${error.message}</p><a href="?" style="color: var(--color-primary); text-decoration: none; margin-top: 20px; display: inline-block;">Voltar ao início</a></div>`;
+            document.body.innerHTML = `<div style="color: white; text-align: center; padding: 50px;"><h3>Link Inválido ou Corrompido</h3><p>Não foi possível carregar os dados da Bio. O link pode ter sido alterado ou cortado.</p><p style="color: #aaa; font-size: 0.8rem;">Erro técnico: ${error.message}</p><a href="?" style="color: var(--color-primary); text-decoration: none; margin-top: 20px; display: inline-block;">Voltar ao início</a></div>`;
             document.body.style.backgroundColor = '#000';
         }
     }
@@ -2355,11 +2357,12 @@
 
             // 2. Stringify e Base64 encode (com suporte a UTF-8)
             const bioString = JSON.stringify(bio);
-            const encodedBio = btoa(unescape(encodeURIComponent(bioString)));
+            const compressed = pako.deflate(bioString, { to: 'string' });
+            const encodedBio = btoa(compressed);
 
             // VERIFICAÇÃO DE SEGURANÇA: Tamanho do Link
-            if (encodedBio.length > 30000) {
-                alert("⚠️ AVISO: Sua foto de perfil é muito pesada! Isso gera um link gigante que pode falhar ao copiar.\n\nDica: Use uma foto menor ou cole o link de uma imagem da internet para garantir que funcione.");
+            if (encodedBio.length > 2000) { // Limite mais seguro para URLs
+                alert("⚠️ AVISO: Sua foto de perfil ainda está um pouco pesada, o que pode gerar um link grande.\n\nDica: Use uma foto menor ou cole o link de uma imagem da internet para garantir que funcione.");
             }
 
             // 3. Construa a URL final de forma robusta
