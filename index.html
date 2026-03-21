@@ -1891,6 +1891,17 @@
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Configurações</button>
                 </form>
             </div>
+
+            <div class="card" style="max-width: 600px; margin: 2rem auto; border-color: var(--color-primary);">
+                <h3>🔄 Sincronização de Dados</h3>
+                <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
+                    Como a plataforma funciona offline, seus dados ficam salvos apenas neste dispositivo. 
+                    Para sincronizar Computador e Celular, faça um <strong>Backup</strong> aqui e importe no outro aparelho.
+                </p>
+                <button onclick="exportData()" class="btn btn-ghost" style="width: 100%; border: 1px solid var(--color-border); margin-bottom: 10px;">📤 Baixar Backup (Exportar)</button>
+                <button onclick="document.getElementById('import-file').click()" class="btn btn-primary" style="width: 100%;">📥 Restaurar Dados (Importar)</button>
+                <input type="file" id="import-file" style="display: none;" onchange="importData(event)" accept=".json">
+            </div>
         `;
 
         document.getElementById('settings-avatar-upload').addEventListener('change', function(event) {
@@ -1905,6 +1916,54 @@
         });
 
         document.getElementById('settings-form').addEventListener('submit', saveUserSettings);
+    }
+
+    // --- Funções de Backup e Restauração ---
+    function exportData() {
+        const data = {
+            users: JSON.parse(localStorage.getItem('zandrix_users_v2')) || [],
+            ads: JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [],
+            bio: JSON.parse(localStorage.getItem('zandrix_bio_v2')) || {},
+            whatsappLinks: JSON.parse(localStorage.getItem('zandrix_whatsapp_links_v2')) || [],
+            communityMessages: JSON.parse(localStorage.getItem('zandrix_community_messages_v2')) || []
+        };
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        const date = new Date().toISOString().slice(0,10);
+        downloadAnchorNode.setAttribute("download", `zandrix_backup_${date}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        showNotification("Backup baixado! Envie este arquivo para seu outro dispositivo.");
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                if(confirm("Isso irá substituir os dados deste dispositivo pelos do backup. Deseja continuar?")) {
+                    if(data.users) localStorage.setItem('zandrix_users_v2', JSON.stringify(data.users));
+                    if(data.ads) localStorage.setItem('zandrix_ads_v2', JSON.stringify(data.ads));
+                    if(data.bio) localStorage.setItem('zandrix_bio_v2', JSON.stringify(data.bio));
+                    if(data.whatsappLinks) localStorage.setItem('zandrix_whatsapp_links_v2', JSON.stringify(data.whatsappLinks));
+                    if(data.communityMessages) localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(data.communityMessages));
+                    
+                    showNotification("Dados sincronizados! Recarregando...");
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch(err) {
+                console.error(err);
+                showNotification("Erro ao ler arquivo de backup.", "error");
+            }
+        };
+        reader.readAsText(file);
     }
 
     function renderCommunityView() {
