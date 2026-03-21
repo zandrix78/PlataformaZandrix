@@ -1368,8 +1368,31 @@
                 <input type="hidden" id="ad-id">
                 <div class="input-group"><label for="ad-title">Título do Anúncio</label><input type="text" id="ad-title" required></div>
                 <div class="input-group"><label for="ad-desc">Descrição</label><textarea id="ad-desc" rows="4" style="height: auto; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem; width: 100%;"></textarea></div>
-                <div class="input-group"><label for="ad-url">Link do Site/Produto</label><input type="url" id="ad-url" required></div>
-                <div class="input-group"><label for="ad-price">Preço (R$)</label><input type="number" step="0.01" id="ad-price" required></div>
+                
+                <div class="input-group">
+                    <label for="ad-category">Categoria</label>
+                    <select id="ad-category" style="width: 100%; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem;">
+                        <option value="Marketing">Marketing</option>
+                        <option value="Programação">Programação</option>
+                        <option value="Design">Design</option>
+                        <option value="Consultoria">Consultoria</option>
+                        <option value="SaaS">SaaS</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Links (Máx 5)</label>
+                    <div id="ad-urls-container" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                    <button type="button" class="btn btn-ghost" onclick="addAdUrlInput()" style="font-size: 0.8rem; margin-top: 5px; width: 100%; border: 1px dashed var(--color-border);">+ Adicionar Link</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Preços (Máx 5)</label>
+                    <div id="ad-prices-container" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                    <button type="button" class="btn btn-ghost" onclick="addAdPriceInput()" style="font-size: 0.8rem; margin-top: 5px; width: 100%; border: 1px dashed var(--color-border);">+ Adicionar Preço</button>
+                </div>
+
                 <div class="input-group"><label for="ad-status">Status</label><select id="ad-status" style="width: 100%; background: var(--color-bg-light); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem;"><option value="active">Ativo</option><option value="inactive">Inativo</option><option value="draft">Rascunho</option></select></div>
                 <div class="input-group"><label for="ad-photos">Fotos (múltiplas)</label><input type="file" id="ad-photos" multiple accept="image/*"><div id="ad-image-preview"></div></div>
                 <div class="input-group"><label for="ad-videos">Vídeos (múltiplos)</label><input type="file" id="ad-videos" multiple accept="video/*"><div id="ad-video-preview"></div></div>
@@ -1403,15 +1426,15 @@
     
     // --- CORREÇÃO DE EMERGÊNCIA: Garante que sua conta exista ---
     // Se o usuário Richard não existir ou a senha estiver errada, recria/atualiza
-    const adminEmail = 'richarddasilvacampos25@gmail.com';
-    const adminPass = 'richard1234567891011';
-    const existingAdminIndex = users.findIndex(u => u.email === adminEmail);
+    const ADMIN_EMAIL = 'richarddasilvacampos25@gmail.com';
+    const ADMIN_PASS = 'richard1234567891011';
+    const existingAdminIndex = users.findIndex(u => u.email === ADMIN_EMAIL);
     
     if (existingAdminIndex === -1) {
-        users.push({ id: 'u-admin', name: 'Richard Zandrix', email: adminEmail, password: adminPass, avatar: 'https://i.pravatar.cc/150?u=richard' });
+        users.push({ id: 'u-admin', name: 'Richard Zandrix', email: ADMIN_EMAIL, password: ADMIN_PASS, avatar: 'https://i.pravatar.cc/150?u=richard' });
         localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
-    } else if (users[existingAdminIndex].password !== adminPass) {
-        users[existingAdminIndex].password = adminPass; // Corrige a senha se estiver diferente
+    } else if (users[existingAdminIndex].password !== ADMIN_PASS) {
+        users[existingAdminIndex].password = ADMIN_PASS; // Corrige a senha se estiver diferente
         localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
     }
     // -------------------------------------------------------------
@@ -1784,6 +1807,13 @@
 
     function renderAdsView() {
         const container = document.getElementById('view-ads');
+        
+        // Verifica se é o administrador
+        if (currentUser.email !== ADMIN_EMAIL) {
+            container.innerHTML = `<div class="card" style="text-align:center; padding: 3rem;"><h2>Acesso Restrito</h2><p class="text-muted">Apenas o administrador (${ADMIN_EMAIL}) pode gerenciar anúncios.</p></div>`;
+            return;
+        }
+
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2>Meus Anúncios</h2>
@@ -1800,7 +1830,7 @@
                                 <div class="ad-stats" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem;">
                                     <span><i data-lucide="eye" style="width:14px; vertical-align: middle; margin-right: 4px;"></i> ${ad.impressions || 0}</span>
                                     <span><i data-lucide="mouse-pointer-click" style="width:14px; vertical-align: middle; margin-right: 4px;"></i> ${ad.clicks || 0}</span>
-                                    <span style="color: var(--color-primary); font-weight: bold;">R$ ${ad.price.toFixed(2)}</span>
+                                    <span style="color: var(--color-primary); font-weight: bold;">${Array.isArray(ad.prices) && ad.prices.length > 0 ? 'R$ ' + parseFloat(ad.prices[0]).toFixed(2) : 'Sob consulta'}</span>
                                 </div>
                             </div>
                         </div>
@@ -2157,12 +2187,46 @@
     });
 
     // --- Funções de Anúncios (Ads) ---
+    
+    // Funções auxiliares para inputs dinâmicos (Links e Preços)
+    window.addAdUrlInput = function(value = '') {
+        const container = document.getElementById('ad-urls-container');
+        if (container.children.length >= 5) return alert("Máximo de 5 links permitidos.");
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.gap = '5px';
+        div.innerHTML = `
+            <input type="url" class="ad-dynamic-url" value="${value}" placeholder="https://..." required style="flex:1;">
+            <button type="button" class="btn btn-ghost" onclick="this.parentElement.remove()" style="color:#ef4444; padding: 5px;"><i data-lucide="trash-2" style="width:16px;"></i></button>
+        `;
+        container.appendChild(div);
+        lucide.createIcons();
+    }
+
+    window.addAdPriceInput = function(value = '') {
+        const container = document.getElementById('ad-prices-container');
+        if (container.children.length >= 5) return alert("Máximo de 5 preços permitidos.");
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.gap = '5px';
+        div.innerHTML = `
+            <input type="number" step="0.01" class="ad-dynamic-price" value="${value}" placeholder="0.00" required style="flex:1;">
+            <button type="button" class="btn btn-ghost" onclick="this.parentElement.remove()" style="color:#ef4444; padding: 5px;"><i data-lucide="trash-2" style="width:16px;"></i></button>
+        `;
+        container.appendChild(div);
+        lucide.createIcons();
+    }
+
     function openAdModal(id = null) {
         const modal = document.getElementById('ad-modal');
         const form = document.getElementById('ad-form');
         form.reset();
         document.getElementById('ad-image-preview').innerHTML = '';
         document.getElementById('ad-video-preview').innerHTML = '';
+        
+        // Limpar containers dinâmicos
+        document.getElementById('ad-urls-container').innerHTML = '';
+        document.getElementById('ad-prices-container').innerHTML = '';
         
         if (id) {
             const ad = ads.find(a => a.id == id);
@@ -2171,15 +2235,36 @@
                 document.getElementById('ad-id').value = ad.id;
                 document.getElementById('ad-title').value = ad.title;
                 document.getElementById('ad-desc').value = ad.description;
-                document.getElementById('ad-url').value = ad.url;
-                document.getElementById('ad-price').value = ad.price;
                 document.getElementById('ad-status').value = ad.status;
+                if(ad.category) document.getElementById('ad-category').value = ad.category;
+
+                // Carregar URLs
+                if (Array.isArray(ad.urls)) {
+                    ad.urls.forEach(url => addAdUrlInput(url));
+                } else if (ad.url) {
+                    addAdUrlInput(ad.url); // Suporte legado
+                } else {
+                    addAdUrlInput(); // Pelo menos um
+                }
+
+                // Carregar Preços
+                if (Array.isArray(ad.prices)) {
+                    ad.prices.forEach(price => addAdPriceInput(price));
+                } else if (ad.price) {
+                    addAdPriceInput(ad.price); // Suporte legado
+                } else {
+                    addAdPriceInput(); // Pelo menos um
+                }
             }
         } else {
             document.getElementById('ad-modal-title').innerText = 'Criar Novo Anúncio';
             document.getElementById('ad-id').value = '';
+            // Adicionar 1 input de cada por padrão
+            addAdUrlInput();
+            addAdPriceInput();
         }
         modal.style.display = 'block';
+        lucide.createIcons();
     }
 
     function closeAdModal() {
@@ -2197,52 +2282,104 @@
 
     async function handleAdFormSubmit(event) {
         event.preventDefault();
-        const id = document.getElementById('ad-id').value;
+        
+        try {
+            const id = document.getElementById('ad-id').value;
 
-        const readFileAsBase64 = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        };
+            // Coletar Arrays de URLs e Preços dos inputs dinâmicos
+            const urlInputs = document.querySelectorAll('.ad-dynamic-url');
+            const urls = Array.from(urlInputs).map(input => input.value).filter(val => val.trim() !== '');
 
-        const photoFiles = Array.from(document.getElementById('ad-photos').files);
-        const videoFiles = Array.from(document.getElementById('ad-videos').files);
+            const priceInputs = document.querySelectorAll('.ad-dynamic-price');
+            const prices = Array.from(priceInputs).map(input => parseFloat(input.value)).filter(val => !isNaN(val));
 
-        const photoData = await Promise.all(photoFiles.map(readFileAsBase64));
-        const videoData = await Promise.all(videoFiles.map(readFileAsBase64));
+            if (urls.length === 0) throw new Error("Adicione pelo menos 1 link.");
+            if (prices.length === 0) throw new Error("Adicione pelo menos 1 preço.");
 
-        const adData = {
-            title: document.getElementById('ad-title').value,
-            description: document.getElementById('ad-desc').value,
-            url: document.getElementById('ad-url').value,
-            price: parseFloat(document.getElementById('ad-price').value),
-            status: document.getElementById('ad-status').value,
-            photos: photoData,
-            videos: videoData,
-            clicks: 0,
-            impressions: 0
-        };
+            // Função de leitura com compressão
+            const readFileWithCompression = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            if (file.type.startsWith('image')) {
+                                const compressed = await compressImage(e.target.result, 600, 0.7); // Reduz para evitar travar o localStorage
+                                resolve(compressed);
+                            } else {
+                                resolve(e.target.result);
+                            }
+                        } catch (err) { reject(err); }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            };
 
-        if (id) { // Edit
-            const adIndex = ads.findIndex(a => a.id == id);
-            if (adIndex > -1) {
-                ads[adIndex] = { ...ads[adIndex], ...adData };
+            const photoFiles = Array.from(document.getElementById('ad-photos').files);
+            const videoFiles = Array.from(document.getElementById('ad-videos').files);
+            
+            if(photoFiles.length > 0) showNotification("Processando imagens...", "info");
+
+            const photoData = await Promise.all(photoFiles.map(readFileWithCompression));
+            const videoData = await Promise.all(videoFiles.map(readFileWithCompression));
+
+            // Recuperar dados antigos se for edição para não perder fotos antigas se não houve novo upload
+            let existingPhotos = [];
+            let existingVideos = [];
+            
+            if (id) {
+                const existingAd = ads.find(a => a.id == id);
+                if (existingAd) {
+                    existingPhotos = existingAd.photos || [];
+                    existingVideos = existingAd.videos || [];
+                }
             }
-        } else { // Create
-            adData.id = Date.now();
-            adData.createdAt = new Date().toISOString();
-            adData.image = adData.photos[0] || 'https://via.placeholder.com/400x200'; // Thumbnail
-            ads.push(adData);
-        }
 
-        localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
-        closeAdModal();
-        renderAdsView();
-        renderMarketplaceView();
-        showNotification('Anúncio salvo com sucesso!');
+            // Se fez upload, substitui. Se não, mantem.
+            const finalPhotos = photoData.length > 0 ? photoData : existingPhotos;
+            const finalVideos = videoData.length > 0 ? videoData : existingVideos;
+
+            const adData = {
+                title: document.getElementById('ad-title').value,
+                description: document.getElementById('ad-desc').value,
+                category: document.getElementById('ad-category').value,
+                urls: urls, // Salva array
+                prices: prices, // Salva array
+                // Mantém compatibilidade com visualização antiga pegando o primeiro item
+                url: urls[0], 
+                price: prices[0],
+                status: document.getElementById('ad-status').value,
+                photos: finalPhotos,
+                videos: finalVideos,
+                image: finalPhotos[0] || 'https://via.placeholder.com/400x200', // Capa
+                clicks: id ? (ads.find(a=>a.id==id)?.clicks || 0) : 0,
+                impressions: id ? (ads.find(a=>a.id==id)?.impressions || 0) : 0
+            };
+
+            if (id) { // Edit
+                const adIndex = ads.findIndex(a => a.id == id);
+                if (adIndex > -1) {
+                    ads[adIndex] = { ...ads[adIndex], ...adData };
+                }
+            } else { // Create
+                adData.id = Date.now();
+                adData.createdAt = new Date().toISOString();
+                ads.push(adData);
+            }
+
+            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            closeAdModal();
+            renderAdsView();
+            renderMarketplaceView();
+            showNotification('Anúncio salvo com sucesso!');
+        } catch (error) {
+            console.error(error);
+            if (error.name === 'QuotaExceededError') {
+                alert("Erro: Espaço cheio! Tente usar menos fotos ou fotos menores.");
+            } else {
+                showNotification(error.message, 'error');
+            }
+        }
     }
 
     function filterMarketplace() {
@@ -2270,14 +2407,17 @@
                 <div style="position: relative;">
                     <img src="${ad.image}" alt="${ad.title}" style="height: 200px; filter: brightness(0.9);">
                     <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold;">Novo</div>
+                    <div style="position: absolute; top: 10px; left: 10px; background: var(--color-primary); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${ad.category || 'Geral'}</div>
                 </div>
                 <div class="content" style="padding: 1.5rem;">
                     <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #fff; font-weight: 600;">${ad.title}</h3>
                     <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5; height: 40px; overflow: hidden;">${ad.description}</p>
                     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                         <div>
-                            <p style="font-size: 0.8rem; color: var(--color-text-muted);">Preço</p>
-                            <p class="price" style="font-size: 1.5rem; color: #00ff88; text-shadow: 0 0 15px rgba(0,255,136,0.2);">R$ ${ad.price.toFixed(2)}</p>
+                            <p style="font-size: 0.8rem; color: var(--color-text-muted);">A partir de</p>
+                            <p class="price" style="font-size: 1.5rem; color: #00ff88; text-shadow: 0 0 15px rgba(0,255,136,0.2);">
+                                ${Array.isArray(ad.prices) && ad.prices.length > 0 ? 'R$ ' + parseFloat(ad.prices[0]).toFixed(2) : 'R$ 0,00'}
+                            </p>
                         </div>
                         <button class="btn btn-primary" style="border-radius: 8px; padding: 0.6rem 1.2rem; background: var(--color-primary); border: none;" onclick="showAdDetails(${ad.id})">Ver <i data-lucide="arrow-right" style="width: 16px;"></i></button>
                     </div>
@@ -2295,7 +2435,7 @@
         content.innerHTML = `
             <span class="close-modal-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</span>
             <h2 style="color: var(--color-primary);">${ad.title}</h2>
-            <p class="text-muted" style="margin-bottom: 1rem;">${ad.description}</p>
+            <p class="text-muted" style="margin-bottom: 1rem;">${ad.description} <br><br><strong>Categoria:</strong> ${ad.category || 'Não informada'}</p>
             <h3 style="margin-top: 1.5rem;">Fotos</h3>
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1rem;">
                 ${ad.photos.map(p => `<img src="${p}" style="max-height: 150px; border-radius: 8px;">`).join('') || '<p>Nenhuma foto.</p>'}
@@ -2304,7 +2444,15 @@
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem;">
                 ${ad.videos.map(v => `<video controls src="${v}" style="max-height: 200px; border-radius: 8px;"></video>`).join('') || '<p>Nenhum vídeo.</p>'}
             </div>
-            <a href="${ad.url}" target="_blank" class="btn btn-primary" style="width: 100%;">Visitar Site - R$ ${ad.price.toFixed(2)}</a>
+            
+            <h3 style="margin-top: 1.5rem;">Opções e Preços</h3>
+            <ul style="margin-bottom: 1.5rem; color: white;">
+                ${Array.isArray(ad.prices) && ad.prices.map((p, i) => `<li>Opção ${i+1}: <strong>R$ ${parseFloat(p).toFixed(2)}</strong></li>`).join('') || ''}
+            </ul>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                ${Array.isArray(ad.urls) && ad.urls.map((url, i) => `<a href="${url}" target="_blank" class="btn btn-primary" style="width: 100%;">Acessar Link ${i+1}</a>`).join('') || ''}
+            </div>
         `;
         document.getElementById('ad-details-modal').style.display = 'block';
     }
