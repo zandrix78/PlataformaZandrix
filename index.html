@@ -1384,6 +1384,17 @@
         </div>
     </div>
 
+    <!-- Modal para Cópia Manual (Fallback) -->
+    <div id="manual-copy-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <span class="close-modal-btn" onclick="document.getElementById('manual-copy-modal').style.display='none'">&times;</span>
+            <h3 style="margin-bottom: 1rem; color: var(--color-primary);">Copiar Link</h3>
+            <p class="text-muted" style="margin-bottom: 1rem;">A cópia automática não funcionou. Copie o link abaixo:</p>
+            <textarea id="manual-copy-textarea" rows="5" style="width: 100%; background: var(--color-bg); color: #fff; padding: 10px; border-radius: 5px; border: 1px solid var(--color-border); font-size: 0.9rem;" readonly onclick="this.select()"></textarea>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="document.getElementById('manual-copy-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
 
     <script>
     // --- 1. ESTADO DA APLICAÇÃO E INICIALIZAÇÃO ---
@@ -1460,24 +1471,11 @@
     }
 
     function copyToClipboardFallback(text, successMessage) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        
-        // Truque para Mobile: Elemento visível mas fora da tela
-        textArea.style.position = "fixed"; // Evita rolar a página
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) showNotification(successMessage);
-            else prompt("Copie seu link abaixo:", text);
-        } catch (err) {
-            prompt("Copie seu link abaixo:", text);
-        }
-        document.body.removeChild(textArea);
+        const modal = document.getElementById('manual-copy-modal');
+        const textarea = document.getElementById('manual-copy-textarea');
+        textarea.value = text;
+        modal.style.display = 'block';
+        textarea.select();
     }
 
     function renderPublicBioMode() {
