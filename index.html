@@ -1479,7 +1479,7 @@
         textarea.select();
     }
 
-    function compressImage(base64Str, maxWidth = 100, quality = 0.4) {
+    function compressImage(base64Str, maxWidth = 80, quality = 0.3) {
         return new Promise((resolve) => {
             const img = new Image();
             img.src = base64Str;
@@ -1843,10 +1843,18 @@
                     <button class="btn btn-ghost" onclick="saveBio()">Salvar Rascunho</button>
                 </div>
             </div>
+            <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333;">
+                <input type="checkbox" id="bio-optimize-insta" style="width: auto; margin: 0; transform: scale(1.5); cursor: pointer;">
+                <label for="bio-optimize-insta" style="margin: 0; cursor: pointer; color: #fff; font-weight: bold;">⚡ Modo Instagram (Link Leve - Remove Foto)</label>
+            </div>
             <div id="bio-result-area" class="card" style="display: none; margin-bottom: 2rem; border-color: #25D366;">
                 <h3 style="color: #25D366; margin-bottom: 0.5rem; font-size: 1rem;">Link Gerado com Sucesso!</h3>
                 <p class="text-muted" style="margin-bottom: 0.5rem; font-size: 0.9rem;">Copie o link abaixo:</p>
-                <input type="text" id="bio-public-url" readonly style="width: 100%; background: #000; border: 1px solid #333; padding: 1rem; color: #fff; border-radius: 0.5rem; font-size: 1rem;" onclick="this.select()">
+                <input type="text" id="bio-public-url" readonly style="width: 100%; background: #000; border: 1px solid #333; padding: 1rem; color: #fff; border-radius: 0.5rem; font-size: 1rem; margin-bottom: 10px;" onclick="this.select()">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-ghost" style="border: 1px solid #333; flex: 1;" onclick="copyBioResultLink()"><i data-lucide="copy"></i> Copiar</button>
+                    <button class="btn btn-primary" style="flex: 1; background-color: #0055aa;" onclick="shortenCurrentLink()"><i data-lucide="scissors"></i> Encurtar (TinyURL)</button>
+                </div>
             </div>
             <div class="bio-manager-layout">
                 <div class="editor-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -2416,12 +2424,38 @@
             }
             
             // Tenta copiar automaticamente (se falhar, não trava o resto)
-            if (navigator.clipboard) navigator.clipboard.writeText(publicUrl).catch(() => {});
             showNotification("Link gerado! Veja abaixo.");
         } catch (e) {
             console.error(e);
             alert("Erro ao gerar link: " + e.message);
         }
+    }
+
+    function copyBioResultLink() {
+        const url = document.getElementById('bio-public-url').value;
+        copyToClipboard(url, "Link copiado!");
+    }
+
+    function shortenCurrentLink() {
+        const longUrl = document.getElementById('bio-public-url').value;
+        if(!longUrl) return;
+        
+        showNotification("Encurtando link... aguarde.");
+        
+        // Tenta usar API do TinyURL
+        fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`)
+            .then(response => {
+                if(response.ok) return response.text();
+                throw new Error("Falha na API");
+            })
+            .then(shortUrl => {
+                document.getElementById('bio-public-url').value = shortUrl;
+                showNotification("Sucesso! Link encurtado.", "success");
+            })
+            .catch(err => {
+                alert("O link é muito longo para encurtar automaticamente ou o navegador bloqueou. Tente ativar o 'Modo Instagram' e gerar novamente.");
+                window.open(`https://tinyurl.com/create.php?url=${encodeURIComponent(longUrl)}`, '_blank');
+            });
     }
 
     function generateWhatsAppLink() {
