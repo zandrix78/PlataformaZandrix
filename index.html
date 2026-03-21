@@ -1443,15 +1443,18 @@
     }
 
     function copyToClipboard(text, successMessage = "Copiado com sucesso!") {
-        // Tenta usar a API moderna primeiro
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification(successMessage);
-            }).catch(err => {
-                // Se falhar (ex: contexto não seguro), usa o fallback
-                copyToClipboardFallback(text, successMessage);
-            });
-        } else {
+        try {
+            // Tenta API moderna (HTTPS/Localhost)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification(successMessage);
+                }).catch(err => {
+                    copyToClipboardFallback(text, successMessage);
+                });
+            } else {
+                throw new Error('API Indisponível');
+            }
+        } catch (e) {
             copyToClipboardFallback(text, successMessage);
         }
     }
@@ -1459,17 +1462,20 @@
     function copyToClipboardFallback(text, successMessage) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
+        
+        // Truque para Mobile: Elemento visível mas fora da tela
         textArea.style.position = "fixed"; // Evita rolar a página
-        textArea.style.opacity = "0";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
         try {
             const successful = document.execCommand('copy');
             if (successful) showNotification(successMessage);
-            else prompt("Seu navegador bloqueou a cópia. Copie o link abaixo:", text);
+            else prompt("Copie seu link abaixo:", text);
         } catch (err) {
-            prompt("Seu navegador bloqueou a cópia. Copie o link abaixo:", text);
+            prompt("Copie seu link abaixo:", text);
         }
         document.body.removeChild(textArea);
     }
