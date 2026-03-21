@@ -1787,9 +1787,14 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2>Editor de Bio</h2>
                 <div>
-                    <button class="btn btn-primary" style="background-color: #25D366; border: none; color: white;" onclick="openPublicBio()"><i data-lucide="copy"></i> Copiar Link da Bio</button>
+                    <button class="btn btn-primary" style="background-color: #25D366; border: none; color: white;" onclick="openPublicBio()"><i data-lucide="link"></i> Gerar Link da Bio</button>
                     <button class="btn btn-ghost" onclick="saveBio()">Salvar Rascunho</button>
                 </div>
+            </div>
+            <div id="bio-result-area" class="card" style="display: none; margin-bottom: 2rem; border-color: #25D366;">
+                <h3 style="color: #25D366; margin-bottom: 0.5rem; font-size: 1rem;">Link Gerado com Sucesso!</h3>
+                <p class="text-muted" style="margin-bottom: 0.5rem; font-size: 0.9rem;">Copie o link abaixo:</p>
+                <input type="text" id="bio-public-url" readonly style="width: 100%; background: #000; border: 1px solid #333; padding: 1rem; color: #fff; border-radius: 0.5rem; font-size: 1rem;" onclick="this.select()">
             </div>
             <div class="bio-manager-layout">
                 <div class="editor-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -1855,6 +1860,11 @@
                     <textarea id="wa-message" style="width: 100%; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.75rem 1rem; color: white; font-size: 1rem; height: 100px;" placeholder="Olá, gostaria de mais informações..."></textarea>
                 </div>
                 <button class="btn btn-primary" style="width: 100%;" onclick="generateWhatsAppLink()">Gerar Link</button>
+                
+                <div id="wa-result-area" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border);">
+                    <label style="color: #25D366; font-weight: bold; display: block; margin-bottom: 0.5rem;">Link do WhatsApp:</label>
+                    <input type="text" id="wa-generated-link" readonly style="width: 100%; background: var(--color-bg-light); border: 1px solid var(--color-border); padding: 1rem; color: #fff; border-radius: 0.5rem;" onclick="this.select()">
+                </div>
             </div>
         `;
     }
@@ -2260,8 +2270,20 @@
         
         const publicUrl = `${url}?p=bio#${encodedBio}`;
 
-        // 4. Copie para a área de transferência
-        copyToClipboard(publicUrl, "✅ Link da Bio copiado! Cole no Instagram.");
+        // 4. Mostrar na tela para cópia manual
+        const resultArea = document.getElementById('bio-result-area');
+        const urlInput = document.getElementById('bio-public-url');
+        if (resultArea && urlInput) {
+            resultArea.style.display = 'block';
+            urlInput.value = publicUrl;
+            urlInput.select(); // Seleciona o texto automaticamente para facilitar
+            // Rola a tela para mostrar o link
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Tenta copiar automaticamente também, só por garantia
+        navigator.clipboard.writeText(publicUrl).catch(() => {});
+        showNotification("Link gerado! Copie no campo acima.");
     }
 
     function generateWhatsAppLink() {
@@ -2277,8 +2299,16 @@
 
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
         
-        copyToClipboard(url, 'Link do WhatsApp copiado!');
-        setTimeout(() => window.open(url, '_blank'), 1500);
+        // Mostrar na tela
+        const resultArea = document.getElementById('wa-result-area');
+        const urlInput = document.getElementById('wa-generated-link');
+        if (resultArea && urlInput) {
+            resultArea.style.display = 'block';
+            urlInput.value = url;
+            urlInput.select();
+        }
+        
+        showNotification('Link gerado! Copie no campo abaixo.');
     }
 
     // --- Funções de Configurações (Settings) ---
