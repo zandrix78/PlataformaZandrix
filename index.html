@@ -1527,7 +1527,7 @@
 
         // Atualiza UI inicial
         if (currentUser) {
-            loginSuccess();
+            updateUserUI(); // Prepara os dados mas mantém na Landing Page
         }
         
         // Renderizações iniciais que dependem de dados
@@ -1711,6 +1711,11 @@
     // --- 2. LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO ---
     
     function openAuthModal(form) {
+        // Se já estiver logado, vai direto para o dashboard sem abrir modal
+        if (currentUser) {
+            loginSuccess();
+            return;
+        }
         document.getElementById('auth-modal').style.display = 'flex';
         switchAuthForm(form);
     }
