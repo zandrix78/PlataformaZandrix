@@ -847,13 +847,15 @@
         .admin-badge {
             background: linear-gradient(45deg, #ffd700, #ffaa00);
             color: #000;
-            font-size: 0.7rem;
-            padding: 2px 6px;
+            font-size: 0.75rem;
+            padding: 3px 8px;
             border-radius: 4px;
-            font-weight: bold;
+            font-weight: 800;
             margin-left: 6px;
             vertical-align: middle;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .ad-highlight {
@@ -1008,9 +1010,14 @@
                     <img src="https://i.imgur.com/w28Wu0f.png" alt="Logo" class="logo-icon">
                     Zandrix
                 </div>
-                <div style="display: flex; gap: 1rem;">
+                <div id="auth-buttons" style="display: flex; gap: 1rem;">
                     <button class="btn btn-ghost" onclick="openAuthModal('login')">Login</button>
                     <button class="btn btn-primary" onclick="openAuthModal('register')">Criar Conta Grátis</button>
+                </div>
+                <div id="session-buttons" style="display: none; gap: 1rem; align-items: center;">
+                    <span id="welcome-message" style="font-size: 0.9rem; color: var(--color-text-muted);"></span>
+                    <button class="btn btn-primary" onclick="loginSuccess()">Entrar no App</button>
+                    <button class="btn btn-ghost" onclick="handleLogoutAndReload()">Sair</button>
                 </div>
             </nav>
         </header>
@@ -1497,9 +1504,6 @@
         if (existingAdminIndex === -1) {
             users.push({ id: 'u-admin', name: 'Richard Zandrix', email: ADMIN_EMAIL, password: ADMIN_PASS, avatar: 'https://i.pravatar.cc/150?u=richard' });
             await db.set('zandrix_users_v2', users);
-        } else if (users[existingAdminIndex].password !== ADMIN_PASS) {
-            users[existingAdminIndex].password = ADMIN_PASS;
-            await db.set('zandrix_users_v2', users);
         }
 
         currentUser = await db.get('zandrix_current_session', null);
@@ -1528,6 +1532,7 @@
         // Atualiza UI inicial
         if (currentUser) {
             updateUserUI(); // Prepara os dados mas mantém na Landing Page
+            updateLandingPageUI();
         }
         
         // Renderizações iniciais que dependem de dados
@@ -1711,11 +1716,6 @@
     // --- 2. LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO ---
     
     function openAuthModal(form) {
-        // Se já estiver logado, vai direto para o dashboard sem abrir modal
-        if (currentUser) {
-            loginSuccess();
-            return;
-        }
         document.getElementById('auth-modal').style.display = 'flex';
         switchAuthForm(form);
     }
@@ -1741,7 +1741,8 @@
         const password = document.getElementById('login-password').value; // Pega a senha exata
 
         // Busca robusta: Verifica senha exata OU senha sem espaços (caso tenha salvo errado antes)
-        const user = users.find(u => u.email === email && (u.password === password || u.password === password.trim()));
+        // Se for o admin, a senha tem que bater exatamente com o que está no banco (permitindo a troca)
+        const user = users.find(u => u.email === email && u.password === password);
 
         if (user) {
             currentUser = user;
@@ -1795,6 +1796,13 @@
         db.set('zandrix_current_session', null);
         document.getElementById('app').style.display = 'none';
         document.getElementById('landing-page').style.display = 'flex';
+        updateLandingPageUI();
+    }
+
+    async function handleLogoutAndReload() {
+        currentUser = null;
+        await db.set('zandrix_current_session', null);
+        window.location.reload();
     }
 
     function updateUserUI() {
@@ -1807,6 +1815,17 @@
             } else {
                 document.getElementById('user-email').textContent = currentUser.email;
             }
+        }
+    }
+
+    function updateLandingPageUI() {
+        if (currentUser) {
+            document.getElementById('auth-buttons').style.display = 'none';
+            document.getElementById('session-buttons').style.display = 'flex';
+            document.getElementById('welcome-message').innerText = `Olá, ${currentUser.name.split(' ')[0]}!`;
+        } else {
+            document.getElementById('auth-buttons').style.display = 'flex';
+            document.getElementById('session-buttons').style.display = 'none';
         }
     }
 
@@ -1848,8 +1867,14 @@
             avgConversion: '2.4%'
         };
 
-        const chartData = ads.slice(-7).map(ad => ({ 
-            name: ad.title.substring(0, 10) + '...', 
+        // Mostrar dados reais no dashboard para o Admin, ou dados simulados para usuários comuns
+        let dashboardAds = ads;
+        if (currentUser.id !== 'u-admin') {
+             // Se não for admin, filtra apenas os anúncios criados por ele (se houvesse essa lógica) ou mostra geral
+        }
+
+        const chartData = dashboardAds.slice(-7).map(ad => ({ 
+            name: ad.title.length > 10 ? ad.title.substring(0, 10) + '...' : ad.title, 
             cliques: ad.clicks || 0,
             impressoes: ad.impressions || 0 
         }));
@@ -1892,8 +1917,8 @@
     function renderAdsView() {
         const container = document.getElementById('view-ads');
         
-        // Verifica se é o administrador
-        if (currentUser.email !== ADMIN_EMAIL) {
+        // Verifica se é o administrador (Segurança Extra)
+        if (currentUser.id !== 'u-admin') {
             container.innerHTML = `<div class="card" style="text-align:center; padding: 3rem;"><h2>Acesso Restrito</h2><p class="text-muted">Apenas o administrador (${ADMIN_EMAIL}) pode gerenciar anúncios.</p></div>`;
             return;
         }
@@ -1901,7 +1926,7 @@
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2>Meus Anúncios</h2>
-                <button class="btn btn-primary" onclick="openAdModal()"><i data-lucide="plus"></i> Criar Anúncio</button>
+                <button class="btn btn-primary" onclick="openAdModal()" style="background: #ffd700; color: black; font-weight: bold;"><i data-lucide="plus"></i> Criar Anúncio (Admin)</button>
             </div>
             <div class="ads-list" style="display: flex; flex-direction: column; gap: 1rem;">
                 ${ads.map(ad => `
@@ -2067,6 +2092,15 @@
                         <input type="file" id="settings-avatar-upload" accept="image/*">
                         <img id="settings-avatar-preview" src="${currentUser.avatar}" style="width: 80px; height: 80px; border-radius: 50%; margin-top: 10px; border: 2px solid var(--color-primary);">
                     </div>
+                    
+                    <hr style="border-color: var(--color-border); margin: 2rem 0;">
+                    
+                    <h3>Alterar Senha</h3>
+                    <div class="input-group">
+                        <label for="settings-new-password">Nova Senha</label>
+                        <input type="password" id="settings-new-password" placeholder="Deixe em branco para manter a atual">
+                    </div>
+
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Configurações</button>
                 </form>
             </div>
@@ -2195,8 +2229,8 @@
 
             // Logic for replyTo rendering
             const isAdmin = msg.userId === 'u-admin';
-            const adminBadge = isAdmin ? '<span class="admin-badge">👑 CEO / Dono</span>' : '';
-            const nameColor = isAdmin ? '#ffd700' : stringToColor(msg.userName); // Dourado se for admin
+            const adminBadge = isAdmin ? '<span class="admin-badge">👑 CEO</span>' : '';
+            const nameColor = isAdmin ? '#ffd700' : stringToColor(msg.userName); // Dourado brilhante se for admin
 
             let replyContent = '';
             if (msg.replyTo) {
@@ -2212,7 +2246,7 @@
                 <div class="chat-message ${isSent ? 'sent' : 'received'}">
                     <img src="${msg.userAvatar}" class="chat-avatar" alt="${msg.userName}">
                     <div style="max-width: 100%;">
-                        ${!isSent ? `<div class="user-info" style="margin-left: 5px;"><span class="name" style="color: ${nameColor}">${msg.userName}</span> ${adminBadge}</div>` : ''}
+                        ${!isSent ? `<div class="user-info" style="margin-left: 5px; display: flex; align-items: center;"><span class="name" style="color: ${nameColor}; font-weight: 900; letter-spacing: 0.5px;">${msg.userName}</span> ${adminBadge}</div>` : ''}
                         <div class="message-bubble">
                             ${replyContent}
                             ${messageContent}
@@ -2762,11 +2796,17 @@
         event.preventDefault();
         const newName = document.getElementById('settings-name').value;
         const avatarFile = document.getElementById('settings-avatar-upload').files[0];
+        const newPassword = document.getElementById('settings-new-password').value;
         
         const updateAndSave = async () => {
             try {
                 // Atualiza sessão atual
                 currentUser.name = newName;
+                
+                if (newPassword && newPassword.trim() !== "") {
+                    currentUser.password = newPassword;
+                }
+
                 await db.set('zandrix_current_session', currentUser);
                 
                 // Atualiza usuário na lista geral
@@ -2777,7 +2817,11 @@
                 }
                 
                 updateUserUI();
-                showNotification('Configurações salvas!');
+                if (newPassword && newPassword.trim() !== "") {
+                    showNotification('Perfil e SENHA atualizados com sucesso!');
+                } else {
+                    showNotification('Perfil atualizado com sucesso!');
+                }
             } catch (error) {
                 console.error(error);
                 if (error.name === 'QuotaExceededError') {
