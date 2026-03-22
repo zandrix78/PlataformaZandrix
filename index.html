@@ -1706,7 +1706,8 @@
             name: name,
             email: email,
             password: password,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+            role: 'user' // Garante que novas contas sejam sempre usuários comuns
         };
 
         users.push(newUser);
@@ -1988,9 +1989,9 @@
         if (!currentUser) return;
 
         let adminPanelHTML = '';
-        if (currentUser.id === 'u-admin') {
+        if (currentUser.email === ADMIN_EMAIL) { // Verificação estrita pelo email do CEO
             const bannedUsers = users.filter(u => u.banned);
-            const allUsers = users.filter(u => u.id !== 'u-admin');
+            const allUsers = users.filter(u => u.email !== ADMIN_EMAIL);
 
             const bannedUsersHTML = bannedUsers.length > 0 ? bannedUsers.map(u => `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
@@ -2197,10 +2198,10 @@
                             <button class="reply-btn" onclick="initiateReply(${msg.id})">
                                 <i data-lucide="reply" style="width: 12px; height: 12px;"></i>
                             </button>
-                            ${currentUser.id === 'u-admin' && msg.userId !== 'u-admin' ? `
+                            ${currentUser.email === ADMIN_EMAIL && msg.userId !== 'u-admin' ? `
                                 <button class="reply-btn" style="color: #ff4444;" onclick="banUser('${msg.userId}', '${msg.userName}')"><i data-lucide="ban" style="width: 12px; height: 12px;"></i> Banir</button>
                             ` : ''}
-                            ${currentUser.id === 'u-admin' || isSent ? `
+                            ${currentUser.email === ADMIN_EMAIL || isSent ? `
                                 <button class="reply-btn" style="color: #ff9900;" onclick="deleteMessage(${msg.id}, ${isSent})"><i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Apagar</button>
                             ` : ''}
                         </div>
@@ -2826,7 +2827,7 @@
     }
 
     function banUser(userId, userName) {
-        if (currentUser.id !== 'u-admin') {
+        if (currentUser.email !== ADMIN_EMAIL) {
             showNotification("Apenas administradores podem banir usuários.", 'error');
             return;
         }
@@ -2852,7 +2853,7 @@
     }
 
     function unbanUser(userId) {
-        if (currentUser.id !== 'u-admin') {
+        if (currentUser.email !== ADMIN_EMAIL) {
             showNotification("Apenas administradores podem desbanir usuários.", 'error');
             return;
         }
@@ -2869,7 +2870,7 @@
     }
 
     function deleteMessage(messageId, isOwnMessage) {
-        const isAdmin = currentUser.id === 'u-admin';
+        const isAdmin = currentUser.email === ADMIN_EMAIL;
         if (!isAdmin && !isOwnMessage) return showNotification("Você só pode apagar suas próprias mensagens.", 'error');
 
         if (confirm(isAdmin && !isOwnMessage ? "Apagar mensagem de outro usuário?" : "Apagar esta mensagem?")) {
