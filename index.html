@@ -1678,6 +1678,10 @@
         const user = users.find(u => u.email === email && (u.password === password || u.password === password.trim()));
 
         if (user) {
+            if (user.banned) {
+                showNotification('Esta conta foi banida.', 'error');
+                return;
+            }
             currentUser = user;
             localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
             loginSuccess();
@@ -1983,6 +1987,43 @@
         const container = document.getElementById('view-settings');
         if (!currentUser) return;
 
+        let adminPanelHTML = '';
+        if (currentUser.id === 'u-admin') {
+            const bannedUsers = users.filter(u => u.banned);
+            const allUsers = users.filter(u => u.id !== 'u-admin');
+
+            const bannedUsersHTML = bannedUsers.length > 0 ? bannedUsers.map(u => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
+                    <span>${u.name} (${u.email})</span>
+                    <button class="btn btn-ghost" style="color: #00cc00; padding: 4px 8px; font-size: 0.8rem;" onclick="unbanUser('${u.id}')">Desbanir</button>
+                </div>
+            `).join('') : '<p class="text-muted" style="font-size: 0.9rem;">Nenhum usuário banido.</p>';
+
+            const allUsersHTML = allUsers.map(u => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
+                    <span>${u.name} (${u.email})</span>
+                    ${!u.banned ? `<button class="btn btn-ghost" style="color: #ff4444; padding: 4px 8px; font-size: 0.8rem;" onclick="banUser('${u.id}', '${u.name}')">Banir</button>` : `<span style="color: #ff4444; font-size: 0.8rem; font-weight: bold;">BANIDO</span>`}
+                </div>
+            `).join('');
+
+            adminPanelHTML = `
+                <div class="card" style="max-width: 600px; margin: 2rem auto; border-color: #ff4444;">
+                    <h3>Painel do Administrador</h3>
+                    <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem;">Gerenciamento de usuários da plataforma.</p>
+                    
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Usuários Banidos (${bannedUsers.length})</h4>
+                    <div id="banned-users-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; background: #000; padding: 10px; border-radius: 5px; border: 1px solid var(--color-border);">
+                        ${bannedUsersHTML}
+                    </div>
+
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Todos os Usuários (${allUsers.length})</h4>
+                    <div id="all-users-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; background: #000; padding: 10px; border-radius: 5px; border: 1px solid var(--color-border);">
+                        ${allUsersHTML}
+                    </div>
+                </div>
+            `;
+        }
+
         container.innerHTML = `
             <div class="card" style="max-width: 600px; margin: auto;">
                 <h2>Configurações do Perfil</h2>
@@ -2000,6 +2041,8 @@
                 </form>
             </div>
 
+            ${adminPanelHTML}
+
             <div class="card" style="max-width: 600px; margin: 2rem auto; border-color: var(--color-primary);">
                 <h3>🔄 Sincronização de Dados</h3>
                 <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
@@ -2011,7 +2054,6 @@
                 <input type="file" id="import-file" style="display: none;" onchange="importData(event)" accept=".json">
             </div>
         `;
-
         document.getElementById('settings-avatar-upload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
@@ -2022,7 +2064,6 @@
                 reader.readAsDataURL(file);
             }
         });
-
         document.getElementById('settings-form').addEventListener('submit', saveUserSettings);
     }
 
@@ -2156,6 +2197,12 @@
                             <button class="reply-btn" onclick="initiateReply(${msg.id})">
                                 <i data-lucide="reply" style="width: 12px; height: 12px;"></i>
                             </button>
+                            ${currentUser.id === 'u-admin' && msg.userId !== 'u-admin' ? `
+                                <button class="reply-btn" style="color: #ff4444;" onclick="banUser('${msg.userId}', '${msg.userName}')"><i data-lucide="ban" style="width: 12px; height: 12px;"></i> Banir</button>
+                            ` : ''}
+                            ${currentUser.id === 'u-admin' || isSent ? `
+                                <button class="reply-btn" style="color: #ff9900;" onclick="deleteMessage(${msg.id}, ${isSent})"><i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Apagar</button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -2776,6 +2823,61 @@
         replyingTo = null;
         const previewBar = document.getElementById('reply-preview-bar');
         if(previewBar) previewBar.style.display = 'none';
+    }
+
+    function banUser(userId, userName) {
+        if (currentUser.id !== 'u-admin') {
+            showNotification("Apenas administradores podem banir usuários.", 'error');
+            return;
+        }
+        if (userId === 'u-admin') {
+            showNotification("Você não pode banir a si mesmo.", 'error');
+            return;
+        }
+
+        if (confirm(`Tem certeza que deseja banir o usuário ${userName}? Ele não poderá mais fazer login.`)) {
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex > -1) {
+                users[userIndex].banned = true;
+                localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+                showNotification(`Usuário ${userName} foi banido.`, 'success');
+                
+                if (document.getElementById('view-settings').classList.contains('active')) {
+                    renderSettingsView();
+                }
+            } else {
+                showNotification("Usuário não encontrado.", 'error');
+            }
+        }
+    }
+
+    function unbanUser(userId) {
+        if (currentUser.id !== 'u-admin') {
+            showNotification("Apenas administradores podem desbanir usuários.", 'error');
+            return;
+        }
+
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex > -1) {
+            delete users[userIndex].banned;
+            localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+            showNotification(`Usuário desbanido.`, 'success');
+            renderSettingsView();
+        } else {
+            showNotification("Usuário não encontrado.", 'error');
+        }
+    }
+
+    function deleteMessage(messageId, isOwnMessage) {
+        const isAdmin = currentUser.id === 'u-admin';
+        if (!isAdmin && !isOwnMessage) return showNotification("Você só pode apagar suas próprias mensagens.", 'error');
+
+        if (confirm(isAdmin && !isOwnMessage ? "Apagar mensagem de outro usuário?" : "Apagar esta mensagem?")) {
+            communityMessages = communityMessages.filter(m => m.id !== messageId);
+            localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+            renderChatMessages();
+            showNotification("Mensagem apagada.", 'success');
+        }
     }
 
     async function toggleAudioRecording() {
