@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-    <script src="https://unpkg.com/idb-keyval@6.2.1/dist/umd.js"></script>
 
     <style>
         /* --- 1. CONFIGURAÇÃO GERAL E VARIÁVEIS --- */
@@ -832,6 +831,14 @@
             .features-grid, .marketplace-grid, .footer-grid { grid-template-columns: 1fr; }
             .testimonial-slide { padding: 0 1rem; }
             .pricing-card.highlighted { transform: none; }
+            
+            /* Correção para Celular: Botões de Login/Cadastro */
+            .landing-nav { padding: 0 0.5rem; }
+            .header-auth-btns { gap: 0.5rem !important; }
+            .landing-nav .btn { padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+            .logo { font-size: 1.1rem; }
+            .logo-icon { width: 1.5rem; height: 1.5rem; }
+            .desktop-only { display: none; }
         }
         .mobile-overlay {
             display: none;
@@ -843,26 +850,6 @@
         .mobile-overlay.open { display: block; }
 
         /* --- 7. ESTILOS DE COMPONENTES ESPECÍFICOS --- */
-        /* Estilos de Admin e Destaques */
-        .admin-badge {
-            background: linear-gradient(45deg, #ffd700, #ffaa00);
-            color: #000;
-            font-size: 0.75rem;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-weight: 800;
-            margin-left: 6px;
-            vertical-align: middle;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .ad-highlight {
-            border: 1px solid #ffd700 !important;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2) !important;
-        }
-
         /* Community Chat Styles */
         #chat-messages {
             flex-grow: 1;
@@ -1010,14 +997,9 @@
                     <img src="https://i.imgur.com/w28Wu0f.png" alt="Logo" class="logo-icon">
                     Zandrix
                 </div>
-                <div id="auth-buttons" style="display: flex; gap: 1rem;">
+                <div class="header-auth-btns" style="display: flex; gap: 1rem;">
                     <button class="btn btn-ghost" onclick="openAuthModal('login')">Login</button>
-                    <button class="btn btn-primary" onclick="openAuthModal('register')">Criar Conta Grátis</button>
-                </div>
-                <div id="session-buttons" style="display: none; gap: 1rem; align-items: center;">
-                    <span id="welcome-message" style="font-size: 0.9rem; color: var(--color-text-muted);"></span>
-                    <button class="btn btn-primary" onclick="loginSuccess()">Entrar no App</button>
-                    <button class="btn btn-ghost" onclick="handleLogoutAndReload()">Sair</button>
+                    <button class="btn btn-primary" onclick="openAuthModal('register')">Cadastrar <span class="desktop-only">Grátis</span></button>
                 </div>
             </nav>
         </header>
@@ -1448,96 +1430,43 @@
 
     <script>
     // --- 1. ESTADO DA APLICAÇÃO E INICIALIZAÇÃO ---
-    // Variáveis globais iniciadas vazias, serão populadas pelo IndexedDB
-    let users = [];
-    let currentUser = null;
-    let ads = [];
-    let bio = {};
-    let whatsappLinks = [];
-    let communityMessages = [];
+    let users = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
     
-    // Configuração Admin
+    // --- CORREÇÃO DE EMERGÊNCIA: Garante que sua conta exista ---
+    // Se o usuário Richard não existir ou a senha estiver errada, recria/atualiza
     const ADMIN_EMAIL = 'richarddasilvacampos25@gmail.com';
     const ADMIN_PASS = 'richard1234567891011';
+    const existingAdminIndex = users.findIndex(u => u.email === ADMIN_EMAIL);
     
-    let replyingTo = null;
-
-    // --- SISTEMA DE BANCO DE DADOS (IndexedDB) ---
-    // Substitui o localStorage para suportar arquivos pesados (vídeos/fotos)
-    const db = {
-        async get(key, defaultValue) {
-            try {
-                let val = await idbKeyval.get(key);
-                if (!val) {
-                    // Migração: Se não existir no IDB, tenta pegar do localStorage antigo
-                    const local = localStorage.getItem(key);
-                    if (local) {
-                        val = JSON.parse(local);
-                        await idbKeyval.set(key, val); // Salva no banco novo
-                        // localStorage.removeItem(key); // Opcional: limpar espaço antigo
-                    }
-                }
-                return val || defaultValue;
-            } catch (e) {
-                console.error("Erro no DB:", e);
-                return defaultValue;
-            }
-        },
-        async set(key, value) {
-            try {
-                await idbKeyval.set(key, value);
-            } catch (e) {
-                console.error("Erro ao salvar no DB:", e);
-                if (e.name === 'QuotaExceededError') {
-                    alert("O armazenamento do navegador está cheio!");
-                }
-            }
-        }
-    };
-
-    async function initDatabase() {
-        // Carrega dados do banco de dados assíncrono
-        users = await db.get('zandrix_users_v2', []);
-        
-        // Garante admin
-        const existingAdminIndex = users.findIndex(u => u.email === ADMIN_EMAIL);
-        if (existingAdminIndex === -1) {
-            users.push({ id: 'u-admin', name: 'Richard Zandrix', email: ADMIN_EMAIL, password: ADMIN_PASS, avatar: 'https://i.pravatar.cc/150?u=richard' });
-            await db.set('zandrix_users_v2', users);
-        }
-
-        currentUser = await db.get('zandrix_current_session', null);
-        ads = await db.get('zandrix_ads_v2', []);
-        
-        const defaultBio = {
-            username: 'seunome',
-            displayName: 'Seu Nome',
-            bio: 'Sua bio personalizada aqui.',
-            avatar: 'https://i.pravatar.cc/150',
-            bgColor: '#000000',
-            textColor: '#ffffff',
-            buttonStyle: 'rounded',
-            links: [{ id: Date.now(), title: 'Meu Site', url: '#' }]
-        };
-        bio = await db.get('zandrix_bio_v2', defaultBio);
-        
-        whatsappLinks = await db.get('zandrix_whatsapp_links_v2', []);
-        
-        const defaultMessages = [
-            { id: 1, userId: 'u2', userName: 'Ana', userAvatar: 'https://i.pravatar.cc/150?u=ana', type: 'text', content: 'Alguém tem dica de imagem boa para anúncio de estética?', timestamp: new Date(Date.now() - 1000 * 60 * 5), likes: [] },
-            { id: 2, userId: 'u3', userName: 'Carlos', userAvatar: 'https://i.pravatar.cc/150?u=carlos', type: 'text', content: 'Tenta usar o Unsplash ou Pexels, sempre acho coisa boa lá!', timestamp: new Date(Date.now() - 1000 * 60 * 3), likes: ['u1'] },
-        ];
-        communityMessages = await db.get('zandrix_community_messages_v2', defaultMessages);
-
-        // Atualiza UI inicial
-        if (currentUser) {
-            updateUserUI(); // Prepara os dados mas mantém na Landing Page
-            updateLandingPageUI();
-        }
-        
-        // Renderizações iniciais que dependem de dados
-        renderMarketplaceView();
+    if (existingAdminIndex === -1) {
+        users.push({ id: 'u-admin', name: 'Richard Zandrix', email: ADMIN_EMAIL, password: ADMIN_PASS, avatar: 'https://i.pravatar.cc/150?u=richard' });
+        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+    } else if (users[existingAdminIndex].password !== ADMIN_PASS) {
+        users[existingAdminIndex].password = ADMIN_PASS; // Corrige a senha se estiver diferente
+        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
     }
+    // -------------------------------------------------------------
+
+    let currentUser = JSON.parse(localStorage.getItem('zandrix_current_session')) || null;
+    let ads = JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [];
+    let bio = JSON.parse(localStorage.getItem('zandrix_bio_v2')) || {
+        username: 'seunome',
+        displayName: 'Seu Nome',
+        bio: 'Sua bio personalizada aqui.',
+        avatar: 'https://i.pravatar.cc/150',
+        bgColor: '#000000',
+        textColor: '#ffffff',
+        buttonStyle: 'rounded',
+        links: [
+            { id: Date.now(), title: 'Meu Site', url: '#' }
+        ]
+    };
+    let whatsappLinks = JSON.parse(localStorage.getItem('zandrix_whatsapp_links_v2')) || [];
+    let communityMessages = JSON.parse(localStorage.getItem('zandrix_community_messages_v2')) || [
+        { id: 1, userId: 'u2', userName: 'Ana', userAvatar: 'https://i.pravatar.cc/150?u=ana', type: 'text', content: 'Alguém tem dica de imagem boa para anúncio de estética?', timestamp: new Date(Date.now() - 1000 * 60 * 5), likes: [] },
+        { id: 2, userId: 'u3', userName: 'Carlos', userAvatar: 'https://i.pravatar.cc/150?u=carlos', type: 'text', content: 'Tenta usar o Unsplash ou Pexels, sempre acho coisa boa lá!', timestamp: new Date(Date.now() - 1000 * 60 * 3), likes: ['u1'] },
+    ];
+    let replyingTo = null;
 
 
     // --- FUNÇÕES UTILITÁRIAS ---
@@ -1741,19 +1670,18 @@
         const password = document.getElementById('login-password').value; // Pega a senha exata
 
         // Busca robusta: Verifica senha exata OU senha sem espaços (caso tenha salvo errado antes)
-        // Se for o admin, a senha tem que bater exatamente com o que está no banco (permitindo a troca)
-        const user = users.find(u => u.email === email && u.password === password);
+        const user = users.find(u => u.email === email && (u.password === password || u.password === password.trim()));
 
         if (user) {
             currentUser = user;
-            db.set('zandrix_current_session', currentUser);
+            localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
             loginSuccess();
         } else {
             showNotification('Email ou senha incorretos.', 'error');
         }
     }
 
-    async function handleRegister(e) {
+    function handleRegister(e) {
         e.preventDefault();
         const name = document.getElementById('register-name').value;
         const email = document.getElementById('register-email').value.trim().toLowerCase(); // Salva sempre limpo
@@ -1773,10 +1701,10 @@
         };
 
         users.push(newUser);
-        await db.set('zandrix_users_v2', users);
+        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
         
         currentUser = newUser;
-        await db.set('zandrix_current_session', currentUser);
+        localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
         
         showNotification('Conta criada com sucesso!');
         loginSuccess();
@@ -1793,39 +1721,16 @@
 
     function handleLogout() {
         currentUser = null;
-        db.set('zandrix_current_session', null);
+        localStorage.removeItem('zandrix_current_session');
         document.getElementById('app').style.display = 'none';
         document.getElementById('landing-page').style.display = 'flex';
-        updateLandingPageUI();
-    }
-
-    async function handleLogoutAndReload() {
-        currentUser = null;
-        await db.set('zandrix_current_session', null);
-        window.location.reload();
     }
 
     function updateUserUI() {
         if (currentUser) {
             document.getElementById('user-avatar').src = currentUser.avatar;
             document.getElementById('user-name').textContent = currentUser.name;
-            // Se for admin, mostra cargo em vez do email
-            if(currentUser.id === 'u-admin') {
-                document.getElementById('user-email').innerHTML = '<span style="color:#ffd700; font-weight:bold;">👑 CEO / Dono</span>';
-            } else {
-                document.getElementById('user-email').textContent = currentUser.email;
-            }
-        }
-    }
-
-    function updateLandingPageUI() {
-        if (currentUser) {
-            document.getElementById('auth-buttons').style.display = 'none';
-            document.getElementById('session-buttons').style.display = 'flex';
-            document.getElementById('welcome-message').innerText = `Olá, ${currentUser.name.split(' ')[0]}!`;
-        } else {
-            document.getElementById('auth-buttons').style.display = 'flex';
-            document.getElementById('session-buttons').style.display = 'none';
+            document.getElementById('user-email').textContent = currentUser.email;
         }
     }
 
@@ -1867,14 +1772,8 @@
             avgConversion: '2.4%'
         };
 
-        // Mostrar dados reais no dashboard para o Admin, ou dados simulados para usuários comuns
-        let dashboardAds = ads;
-        if (currentUser.id !== 'u-admin') {
-             // Se não for admin, filtra apenas os anúncios criados por ele (se houvesse essa lógica) ou mostra geral
-        }
-
-        const chartData = dashboardAds.slice(-7).map(ad => ({ 
-            name: ad.title.length > 10 ? ad.title.substring(0, 10) + '...' : ad.title, 
+        const chartData = ads.slice(-7).map(ad => ({ 
+            name: ad.title.substring(0, 10) + '...', 
             cliques: ad.clicks || 0,
             impressoes: ad.impressions || 0 
         }));
@@ -1917,8 +1816,8 @@
     function renderAdsView() {
         const container = document.getElementById('view-ads');
         
-        // Verifica se é o administrador (Segurança Extra)
-        if (currentUser.id !== 'u-admin') {
+        // Verifica se é o administrador
+        if (currentUser.email !== ADMIN_EMAIL) {
             container.innerHTML = `<div class="card" style="text-align:center; padding: 3rem;"><h2>Acesso Restrito</h2><p class="text-muted">Apenas o administrador (${ADMIN_EMAIL}) pode gerenciar anúncios.</p></div>`;
             return;
         }
@@ -1926,7 +1825,7 @@
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2>Meus Anúncios</h2>
-                <button class="btn btn-primary" onclick="openAdModal()" style="background: #ffd700; color: black; font-weight: bold;"><i data-lucide="plus"></i> Criar Anúncio (Admin)</button>
+                <button class="btn btn-primary" onclick="openAdModal()"><i data-lucide="plus"></i> Criar Anúncio</button>
             </div>
             <div class="ads-list" style="display: flex; flex-direction: column; gap: 1rem;">
                 ${ads.map(ad => `
@@ -2092,15 +1991,6 @@
                         <input type="file" id="settings-avatar-upload" accept="image/*">
                         <img id="settings-avatar-preview" src="${currentUser.avatar}" style="width: 80px; height: 80px; border-radius: 50%; margin-top: 10px; border: 2px solid var(--color-primary);">
                     </div>
-                    
-                    <hr style="border-color: var(--color-border); margin: 2rem 0;">
-                    
-                    <h3>Alterar Senha</h3>
-                    <div class="input-group">
-                        <label for="settings-new-password">Nova Senha</label>
-                        <input type="password" id="settings-new-password" placeholder="Deixe em branco para manter a atual">
-                    </div>
-
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Configurações</button>
                 </form>
             </div>
@@ -2132,13 +2022,13 @@
     }
 
     // --- Funções de Backup e Restauração ---
-    async function exportData() {
+    function exportData() {
         const data = {
-            users: await db.get('zandrix_users_v2', []),
-            ads: await db.get('zandrix_ads_v2', []),
-            bio: await db.get('zandrix_bio_v2', {}),
-            whatsappLinks: await db.get('zandrix_whatsapp_links_v2', []),
-            communityMessages: await db.get('zandrix_community_messages_v2', [])
+            users: JSON.parse(localStorage.getItem('zandrix_users_v2')) || [],
+            ads: JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [],
+            bio: JSON.parse(localStorage.getItem('zandrix_bio_v2')) || {},
+            whatsappLinks: JSON.parse(localStorage.getItem('zandrix_whatsapp_links_v2')) || [],
+            communityMessages: JSON.parse(localStorage.getItem('zandrix_community_messages_v2')) || []
         };
         
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
@@ -2161,12 +2051,12 @@
             try {
                 const data = JSON.parse(e.target.result);
                 
-                if(confirm("Isso irá substituir os dados atuais pelos do backup. Deseja continuar?")) {
-                    if(data.users) db.set('zandrix_users_v2', data.users);
-                    if(data.ads) db.set('zandrix_ads_v2', data.ads);
-                    if(data.bio) db.set('zandrix_bio_v2', data.bio);
-                    if(data.whatsappLinks) db.set('zandrix_whatsapp_links_v2', data.whatsappLinks);
-                    if(data.communityMessages) db.set('zandrix_community_messages_v2', data.communityMessages);
+                if(confirm("Isso irá substituir os dados deste dispositivo pelos do backup. Deseja continuar?")) {
+                    if(data.users) localStorage.setItem('zandrix_users_v2', JSON.stringify(data.users));
+                    if(data.ads) localStorage.setItem('zandrix_ads_v2', JSON.stringify(data.ads));
+                    if(data.bio) localStorage.setItem('zandrix_bio_v2', JSON.stringify(data.bio));
+                    if(data.whatsappLinks) localStorage.setItem('zandrix_whatsapp_links_v2', JSON.stringify(data.whatsappLinks));
+                    if(data.communityMessages) localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(data.communityMessages));
                     
                     showNotification("Dados sincronizados! Recarregando...");
                     setTimeout(() => location.reload(), 1500);
@@ -2228,10 +2118,6 @@
             const likeCount = msg.likes?.length || 0;
 
             // Logic for replyTo rendering
-            const isAdmin = msg.userId === 'u-admin';
-            const adminBadge = isAdmin ? '<span class="admin-badge">👑 CEO</span>' : '';
-            const nameColor = isAdmin ? '#ffd700' : stringToColor(msg.userName); // Dourado brilhante se for admin
-
             let replyContent = '';
             if (msg.replyTo) {
                 replyContent = `
@@ -2246,7 +2132,7 @@
                 <div class="chat-message ${isSent ? 'sent' : 'received'}">
                     <img src="${msg.userAvatar}" class="chat-avatar" alt="${msg.userName}">
                     <div style="max-width: 100%;">
-                        ${!isSent ? `<div class="user-info" style="margin-left: 5px; display: flex; align-items: center;"><span class="name" style="color: ${nameColor}; font-weight: 900; letter-spacing: 0.5px;">${msg.userName}</span> ${adminBadge}</div>` : ''}
+                        ${!isSent ? `<div class="user-info" style="margin-left: 5px;"><span class="name" style="color: ${stringToColor(msg.userName)}">${msg.userName}</span></div>` : ''}
                         <div class="message-bubble">
                             ${replyContent}
                             ${messageContent}
@@ -2270,16 +2156,13 @@
     }
 
     // --- 4. FUNÇÕES CRUD E EVENT LISTENERS ---
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
         // VERIFICAÇÃO DE MODO BIO PÚBLICA
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('p') === 'bio') {
             renderPublicBioMode();
             return; // Interrompe o carregamento do restante do app
         }
-
-        // Inicializa o Banco de Dados Assíncrono (IndexedDB)
-        await initDatabase();
 
         lucide.createIcons();
         initLandingPage(); // Initialize new landing page features
@@ -2396,10 +2279,10 @@
         document.getElementById('ad-modal').style.display = 'none';
     }
 
-    async function deleteAd(id) {
+    function deleteAd(id) {
         if (confirm("Tem certeza que deseja excluir este anúncio?")) {
             ads = ads.filter(ad => ad.id !== id);
-            await db.set('zandrix_ads_v2', ads);
+            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
             renderAdsView();
             showNotification("Anúncio excluído com sucesso!");
         }
@@ -2492,7 +2375,7 @@
                 ads.push(adData);
             }
 
-            await db.set('zandrix_ads_v2', ads);
+            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
             closeAdModal();
             renderAdsView();
             renderMarketplaceView();
@@ -2500,7 +2383,7 @@
         } catch (error) {
             console.error(error);
             if (error.name === 'QuotaExceededError') {
-                alert("Erro ao salvar! O arquivo pode ser muito grande.");
+                alert("Erro: Espaço cheio! Tente usar menos fotos ou fotos menores.");
             } else {
                 showNotification(error.message, 'error');
             }
@@ -2515,14 +2398,7 @@
             ? activeAds.filter(ad => ad.title.toLowerCase().includes(searchTerm) || ad.description.toLowerCase().includes(searchTerm))
             : activeAds;
         
-        // Ordenar por relevância (Cliques tem peso 2, Impressões peso 1)
-        const sortedAds = filteredAds.sort((a, b) => {
-            const scoreA = (a.clicks || 0) * 2 + (a.impressions || 0);
-            const scoreB = (b.clicks || 0) * 2 + (b.impressions || 0);
-            return scoreB - scoreA; // Decrescente
-        });
-
-        renderMarketplaceGrid(sortedAds);
+        renderMarketplaceGrid(filteredAds);
     }
 
     function renderMarketplaceGrid(adsToRender) {
@@ -2534,17 +2410,11 @@
             return;
         }
 
-        grid.innerHTML = adsToRender.map((ad, index) => {
-            // Destaque para os Top 3 se tiverem alguma relevância
-            const isHot = index < 3 && (ad.clicks > 0 || ad.impressions > 0);
-            const highlightClass = isHot ? 'ad-highlight' : '';
-            const badge = isHot ? '<div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(45deg, #ff4444, #ff8800); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold; box-shadow: 0 0 10px rgba(255,68,68,0.5);">🔥 Em Alta</div>' : '<div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold;">Novo</div>';
-
-            return `
-            <div class="card marketplace-card ${highlightClass}" style="padding: 0; position: relative; border: 1px solid #333; background: linear-gradient(180deg, rgba(20,20,20,1) 0%, rgba(10,10,10,1) 100%);">
+        grid.innerHTML = adsToRender.map(ad => `
+            <div class="card marketplace-card" style="padding: 0; position: relative; border: 1px solid #333; background: linear-gradient(180deg, rgba(20,20,20,1) 0%, rgba(10,10,10,1) 100%);">
                 <div style="position: relative;">
                     <img src="${ad.image}" alt="${ad.title}" style="height: 200px; filter: brightness(0.9);">
-                    ${badge}
+                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold;">Novo</div>
                     <div style="position: absolute; top: 10px; left: 10px; background: var(--color-primary); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${ad.category || 'Geral'}</div>
                 </div>
                 <div class="content" style="padding: 1.5rem;">
@@ -2560,8 +2430,8 @@
                         <button class="btn btn-primary" style="border-radius: 8px; padding: 0.6rem 1.2rem; background: var(--color-primary); border: none;" onclick="showAdDetails(${ad.id})">Ver <i data-lucide="arrow-right" style="width: 16px;"></i></button>
                     </div>
                 </div>
-            </div>`;
-        }).join('');
+            </div>
+        `).join('');
         lucide.createIcons();
     }
 
@@ -2646,14 +2516,14 @@
         ).join('');
     }
 
-    async function saveBio() {
+    function saveBio() {
         updateBioPreview(); // Garante que todos os dados do form estão no objeto bio
         if (bio.newAvatarData) {
             bio.avatar = bio.newAvatarData;
             delete bio.newAvatarData; // Limpa o dado temporário
         }
 
-        await db.set('zandrix_bio_v2', bio);
+        localStorage.setItem('zandrix_bio_v2', JSON.stringify(bio));
         showNotification('Bio salva com sucesso!');
     }
 
@@ -2796,53 +2666,27 @@
         event.preventDefault();
         const newName = document.getElementById('settings-name').value;
         const avatarFile = document.getElementById('settings-avatar-upload').files[0];
-        const newPassword = document.getElementById('settings-new-password').value;
         
-        const updateAndSave = async () => {
-            try {
-                // Atualiza sessão atual
-                currentUser.name = newName;
-                
-                if (newPassword && newPassword.trim() !== "") {
-                    currentUser.password = newPassword;
-                }
-
-                await db.set('zandrix_current_session', currentUser);
-                
-                // Atualiza usuário na lista geral
-                const userIndex = users.findIndex(u => u.id === currentUser.id);
-                if (userIndex > -1) {
-                    users[userIndex] = currentUser;
-                    await db.set('zandrix_users_v2', users);
-                }
-                
-                updateUserUI();
-                if (newPassword && newPassword.trim() !== "") {
-                    showNotification('Perfil e SENHA atualizados com sucesso!');
-                } else {
-                    showNotification('Perfil atualizado com sucesso!');
-                }
-            } catch (error) {
-                console.error(error);
-                if (error.name === 'QuotaExceededError') {
-                    alert("Erro: Espaço cheio! A imagem escolhida é muito pesada para salvar no navegador. Tente uma menor.");
-                } else {
-                    alert("Erro ao salvar: " + error.message);
-                }
+        const updateAndSave = () => {
+            // Atualiza sessão atual
+            currentUser.name = newName;
+            localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
+            
+            // Atualiza usuário na lista geral
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex > -1) {
+                users[userIndex] = currentUser;
+                localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
             }
+            
+            updateUserUI();
+            showNotification('Configurações salvas!');
         };
 
         if (avatarFile) {
             const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    // Comprimir imagem para 200px para economizar espaço
-                    const compressed = await compressImage(e.target.result, 200, 0.7);
-                    currentUser.avatar = compressed;
-                } catch (err) {
-                    console.error("Erro ao comprimir avatar", err);
-                    currentUser.avatar = e.target.result;
-                }
+            reader.onload = (e) => {
+                currentUser.avatar = e.target.result;
                 updateAndSave();
             };
             reader.readAsDataURL(avatarFile);
@@ -2856,7 +2700,7 @@
     let audioChunks = [];
     let isRecording = false;
 
-    async function sendTextMessage() {
+    function sendTextMessage() {
         const input = document.getElementById('chat-message-input');
         const content = input.value.trim();
         if (content) {
@@ -2872,14 +2716,14 @@
                 replyTo: replyingTo // Anexa a mensagem respondida, se houver
             };
             communityMessages.push(message);
-            await db.set('zandrix_community_messages_v2', communityMessages);
+            localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
             cancelReply(); // Limpa o estado de resposta
             renderChatMessages();
             input.value = '';
         }
     }
 
-    async function toggleLike(messageId) {
+    function toggleLike(messageId) {
         const message = communityMessages.find(m => m.id === messageId);
         if (!message) return;
 
@@ -2893,7 +2737,7 @@
         } else {
             message.likes.push(currentUser.id); // Like
         }
-        await db.set('zandrix_community_messages_v2', communityMessages);
+        localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
         renderChatMessages();
     }
 
@@ -2947,11 +2791,11 @@
             mediaRecorder.addEventListener("stop", () => {
                 const audioBlob = new Blob(audioChunks);
                 const reader = new FileReader();
-                reader.onload = async function(e) {
+                reader.onload = function(e) {
                     const audioUrl = e.target.result; // Base64 audio data
                     const message = { id: Date.now(), userId: currentUser.id, userName: currentUser.name, userAvatar: currentUser.avatar, type: 'audio', content: audioUrl, timestamp: new Date(), likes: [], replyTo: replyingTo };
                     communityMessages.push(message);
-                    await db.set('zandrix_community_messages_v2', communityMessages);
+                    localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
                     cancelReply();
                     renderChatMessages();
                     audioChunks = [];
