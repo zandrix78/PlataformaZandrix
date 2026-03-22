@@ -1439,11 +1439,16 @@
     const existingAdminIndex = users.findIndex(u => u.email === ADMIN_EMAIL);
     
     if (existingAdminIndex === -1) {
-        users.push({ id: 'u-admin', name: 'Richard Zandrix', email: ADMIN_EMAIL, password: ADMIN_PASS, avatar: 'https://i.pravatar.cc/150?u=richard' });
+        users.push({ id: 'u-admin', name: 'Richard (CEO)', email: ADMIN_EMAIL, password: ADMIN_PASS, avatar: 'https://i.pravatar.cc/150?u=richard', role: 'owner' });
         localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
-    } else if (users[existingAdminIndex].password !== ADMIN_PASS) {
-        users[existingAdminIndex].password = ADMIN_PASS; // Corrige a senha se estiver diferente
-        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+    } else {
+        // Garante que o CEO tenha sempre as credenciais, nome e permissões corretas
+        let changed = false;
+        if (users[existingAdminIndex].password !== ADMIN_PASS) { users[existingAdminIndex].password = ADMIN_PASS; changed = true; }
+        if (users[existingAdminIndex].name !== 'Richard (CEO)') { users[existingAdminIndex].name = 'Richard (CEO)'; changed = true; }
+        if (users[existingAdminIndex].role !== 'owner') { users[existingAdminIndex].role = 'owner'; changed = true; }
+        
+        if (changed) localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
     }
     // -------------------------------------------------------------
 
