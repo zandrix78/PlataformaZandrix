@@ -1448,6 +1448,14 @@
         if (users[existingAdminIndex].name !== 'Richard (CEO)') { users[existingAdminIndex].name = 'Richard (CEO)'; changed = true; }
         if (users[existingAdminIndex].role !== 'owner') { users[existingAdminIndex].role = 'owner'; changed = true; }
         
+        // SEGURANÇA MÁXIMA: Remove permissões de administrador de qualquer outra conta que não seja a sua
+        users.forEach(u => {
+            if (u.email !== ADMIN_EMAIL && (u.role === 'owner' || u.role === 'admin')) {
+                u.role = 'user';
+                changed = true;
+            }
+        });
+
         if (changed) localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
     }
     // -------------------------------------------------------------
@@ -2165,7 +2173,8 @@
             const likeCount = msg.likes?.length || 0;
 
             // Verifica se é o CEO para dar destaque visual
-            const isCEO = msg.userId === 'u-admin';
+            const adminUser = users.find(u => u.email === ADMIN_EMAIL);
+            const isCEO = adminUser && msg.userId === adminUser.id;
             const nameColor = isCEO ? '#ffd700' : stringToColor(msg.userName); // Dourado para CEO
             const badge = isCEO ? ' <span style="background: #ffd700; color: #000; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; vertical-align: middle; box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);">👑 CEO</span>' : '';
 
