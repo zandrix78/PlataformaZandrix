@@ -2120,6 +2120,24 @@
                 <input type="file" id="import-file" style="display: none;" onchange="importData(event)" accept=".json">
             </div>
         `;
+
+        // Injeta o Modal de Conexão de Dispositivo no final do body se não existir
+        if (!document.getElementById('admin-connect-modal')) {
+            const modalHTML = `
+            <div id="admin-connect-modal" class="modal">
+                <div class="modal-content" style="max-width: 500px;">
+                    <span class="close-modal-btn" onclick="document.getElementById('admin-connect-modal').style.display='none'">&times;</span>
+                    <h2 style="color: var(--color-primary);">📡 Conectar Conta Externa</h2>
+                    <p class="text-muted" style="margin-bottom: 1rem;">Cole aqui o <strong>Código de Resgate</strong> gerado no dispositivo do seu amigo para importar a conta dele.</p>
+                    
+                    <textarea id="admin-import-token" placeholder="Cole o código aqui..." style="width: 100%; height: 100px; background: #222; color: white; padding: 10px; border: 1px solid #444; border-radius: 5px; margin-bottom: 1rem;"></textarea>
+                    
+                    <button class="btn btn-primary" style="width: 100%;" onclick="adminImportUserToken()">Importar Conta</button>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
         document.getElementById('settings-avatar-upload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
@@ -2345,6 +2363,92 @@
         users = currentUsers;
         renderAdminUsers();
         showNotification("Usuário excluído com sucesso.", "success");
+    }
+
+    // --- FUNÇÕES DE RECUPERAÇÃO E CONEXÃO ---
+
+    window.openRecoveryModal = function() {
+        const modal = document.getElementById('recovery-modal');
+        const list = document.getElementById('recovery-user-list');
+        const localUsers = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+        
+        document.getElementById('recovery-token-area').style.display = 'none';
+        
+        if (localUsers.length === 0) {
+            list.innerHTML = '<p style="color: #aaa; text-align: center;">Nenhuma conta encontrada neste dispositivo.</p>';
+        } else {
+            list.innerHTML = localUsers.map(u => `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #222; padding: 10px; border-radius: 5px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${u.avatar}" style="width: 30px; height: 30px; border-radius: 50%;">
+                        <div>
+                            <div style="color: white; font-weight: bold; font-size: 0.9rem;">${u.name}</div>
+                            <div style="color: #888; font-size: 0.8rem;">${u.email}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost" style="border: 1px solid var(--color-primary); color: var(--color-primary); font-size: 0.8rem;" onclick="generateRecoveryToken('${u.id}')">Gerar Código</button>
+                </div>
+            `).join('');
+        }
+        
+        modal.style.display = 'flex'; // Usar flex para centralizar
+        closeAuthModal(); // Fecha o de login se estiver aberto
+    }
+
+    window.generateRecoveryToken = function(userId) {
+        const localUsers = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+        const user = localUsers.find(u => u.id === userId);
+        
+        if (user) {
+            const userString = JSON.stringify(user);
+            const token = btoa(unescape(encodeURIComponent(userString))); 
+            
+            document.getElementById('recovery-token-output').value = "USER_SYNC::" + token;
+            document.getElementById('recovery-token-area').style.display = 'block';
+            showNotification("Código gerado! Copie e envie para o Admin.");
+        }
+    }
+
+    window.copyRecoveryToken = function() {
+        const copyText = document.getElementById("recovery-token-output");
+        copyText.select();
+        document.execCommand("copy");
+        showNotification("Código copiado!");
+    }
+
+    window.openConnectDeviceModal = function() {
+        document.getElementById('admin-connect-modal').style.display = 'flex';
+    }
+
+    window.adminImportUserToken = function() {
+        const tokenInput = document.getElementById('admin-import-token').value.trim();
+        
+        if (!tokenInput.startsWith("USER_SYNC::")) {
+            showNotification("Código inválido.", "error");
+            return;
+        }
+
+        try {
+            const base64Part = tokenInput.replace("USER_SYNC::", "");
+            const jsonString = decodeURIComponent(escape(atob(base64Part)));
+            const importedUser = JSON.parse(jsonString);
+            
+            let currentUsers = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+            const existingIndex = currentUsers.findIndex(u => u.id === importedUser.id || u.email === importedUser.email);
+            
+            if (existingIndex > -1) currentUsers[existingIndex] = { ...currentUsers[existingIndex], ...importedUser };
+            else currentUsers.push(importedUser);
+
+            localStorage.setItem('zandrix_users_v2', JSON.stringify(currentUsers));
+            users = currentUsers;
+            renderAdminUsers();
+            document.getElementById('admin-connect-modal').style.display = 'none';
+            document.getElementById('admin-import-token').value = '';
+            showNotification(`Conta de ${importedUser.name} importada com sucesso!`);
+        } catch (e) {
+            console.error(e);
+            showNotification("Erro ao processar o código.", "error");
+        }
     }
 
     window.renderAdminAds = function(searchEmail = '') {
