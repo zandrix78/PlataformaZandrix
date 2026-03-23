@@ -1714,6 +1714,7 @@
             name: name,
             email: email,
             password: password,
+            createdAt: new Date().toISOString(),
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
             role: 'user' // Garante que novas contas sejam sempre usuários comuns
         };
@@ -2003,41 +2004,47 @@
     }
 
     function renderSettingsView() {
+        // REFRESH DATA: Garante que contas novas apareçam imediatamente
+        users = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+        ads = JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [];
+
         const container = document.getElementById('view-settings');
         if (!currentUser) return;
 
         let adminPanelHTML = '';
         if (currentUser.email === ADMIN_EMAIL) { // Verificação estrita pelo email do CEO
-            const bannedUsers = users.filter(u => u.banned);
-            const allUsers = users.filter(u => u.email !== ADMIN_EMAIL);
-
-            const bannedUsersHTML = bannedUsers.length > 0 ? bannedUsers.map(u => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
-                    <span>${u.name} (${u.email})</span>
-                    <button class="btn btn-ghost" style="color: #00cc00; padding: 4px 8px; font-size: 0.8rem;" onclick="unbanUser('${u.id}')">Desbanir</button>
-                </div>
-            `).join('') : '<p class="text-muted" style="font-size: 0.9rem;">Nenhum usuário banido.</p>';
-
-            const allUsersHTML = allUsers.map(u => `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
-                    <span>${u.name} (${u.email})</span>
-                    ${!u.banned ? `<button class="btn btn-ghost" style="color: #ff4444; padding: 4px 8px; font-size: 0.8rem;" onclick="banUser('${u.id}', '${u.name}')">Banir</button>` : `<span style="color: #ff4444; font-size: 0.8rem; font-weight: bold;">BANIDO</span>`}
-                </div>
-            `).join('');
-
             adminPanelHTML = `
-                <div class="card" style="max-width: 600px; margin: 2rem auto; border-color: #ff4444;">
+                <div class="card" style="margin: 2rem 0; border-color: #ff4444;">
                     <h3>Painel do Administrador</h3>
-                    <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1rem;">Gerenciamento de usuários da plataforma.</p>
                     
-                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Usuários Banidos (${bannedUsers.length})</h4>
-                    <div id="banned-users-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; background: #000; padding: 10px; border-radius: 5px; border: 1px solid var(--color-border);">
-                        ${bannedUsersHTML}
+                    <!-- Gráfico de Crescimento -->
+                    <div style="margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 8px;">
+                        <h4 style="margin-bottom: 15px; color: var(--color-primary);">📈 Crescimento de Usuários (7 Dias)</h4>
+                        <div style="height: 250px;">
+                            <canvas id="userGrowthChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Gestão de Usuários -->
+                    <div style="margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 8px;">
+                        <h4 style="margin-bottom: 15px; color: var(--color-primary);">👥 Gerenciar Contas (${users.length})</h4>
+                        <input type="text" placeholder="🔎 Pesquisar nome ou email..." oninput="renderAdminUsers(this.value)" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #000; border: 1px solid #333; color: white; border-radius: 5px;">
+                        
+                        <div id="admin-users-list" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;">
+                            <!-- Lista preenchida via JS -->
+                        </div>
                     </div>
 
-                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Todos os Usuários (${allUsers.length})</h4>
-                    <div id="all-users-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; background: #000; padding: 10px; border-radius: 5px; border: 1px solid var(--color-border);">
-                        ${allUsersHTML}
+                    <!-- Gestão de Anúncios (Marketplace) -->
+                    <div style="margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 8px;">
+                        <h4 style="margin-bottom: 15px; color: #10b981;">🛒 Aprovar Produtos / Marketplace</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" placeholder="🔎 Filtrar produtos pelo email do dono..." oninput="renderAdminAds(this.value)" style="flex: 1; padding: 10px; background: #000; border: 1px solid #333; color: white; border-radius: 5px;">
+                        </div>
+                        
+                        <div id="admin-ads-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 500px; overflow-y: auto;">
+                            <!-- Grade preenchida via JS -->
+                        </div>
                     </div>
                 </div>
             `;
@@ -2088,6 +2095,135 @@
             }
         });
         document.getElementById('settings-form').addEventListener('submit', saveUserSettings);
+        
+        // Inicializar listas do admin se for admin
+        if (currentUser.email === ADMIN_EMAIL) {
+            setTimeout(() => {
+                renderAdminUsers();
+                renderAdminAds();
+                renderUserGrowthChart();
+            }, 100);
+        }
+    }
+
+    // --- Funções Auxiliares do Painel Admin ---
+    window.renderAdminUsers = function(searchTerm = '') {
+        const list = document.getElementById('admin-users-list');
+        if(!list) return;
+        
+        const currentUsers = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+        const filtered = currentUsers.filter(u => 
+            u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            u.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        list.innerHTML = filtered.map(u => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #000; border-radius: 5px; border: 1px solid #333;">
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: white;">${u.name} <span style="font-size: 0.8rem; color: #666;">(${u.role || 'user'})</span></div>
+                    <div style="color: #aaa; font-size: 0.9rem;">${u.email}</div>
+                    <div style="color: var(--color-primary); font-size: 0.85rem; font-family: monospace; margin-top: 2px;">🔑 Senha: ${u.password}</div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    ${u.id !== 'u-admin' ? (
+                        u.banned 
+                        ? `<button class="btn btn-ghost" style="color: #00cc00; border: 1px solid #00cc00; padding: 2px 8px; font-size: 0.8rem;" onclick="unbanUser('${u.id}')">Desbanir</button>`
+                        : `<button class="btn btn-ghost" style="color: #ff4444; border: 1px solid #ff4444; padding: 2px 8px; font-size: 0.8rem;" onclick="banUser('${u.id}', '${u.name}')">Banir</button>`
+                    ) : ''}
+                </div>
+            </div>
+        `).join('') || '<p class="text-muted" style="text-align:center; padding: 10px;">Nenhum usuário encontrado.</p>';
+    }
+
+    window.renderAdminAds = function(searchEmail = '') {
+        const grid = document.getElementById('admin-ads-grid');
+        if(!grid) return;
+
+        const currentAds = JSON.parse(localStorage.getItem('zandrix_ads_v2')) || [];
+        const currentUsers = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+        
+        let filteredAds = currentAds;
+        if(searchEmail) {
+            const matchedUsers = currentUsers.filter(u => u.email.toLowerCase().includes(searchEmail.toLowerCase()));
+            const matchedUserIds = matchedUsers.map(u => u.id);
+            filteredAds = currentAds.filter(a => matchedUserIds.includes(a.userId));
+        }
+
+        grid.innerHTML = filteredAds.map(ad => {
+            const owner = currentUsers.find(u => u.id === ad.userId);
+            const borderColor = ad.status === 'active' ? '#00cc00' : (ad.status === 'pending' ? '#f59e0b' : '#333');
+            return `
+            <div style="aspect-ratio: 1/1; background: #000; border: 2px solid ${borderColor}; border-radius: 8px; overflow: hidden; position: relative;">
+                <img src="${ad.image}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); padding: 8px 5px; display: flex; flex-direction: column; gap: 3px;">
+                    <div style="color: white; font-weight: bold; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ad.title}</div>
+                    <div style="color: #aaa; font-size: 0.65rem;">${owner ? owner.email : 'Desc.'}</div>
+                    <div style="display: flex; gap: 5px; margin-top: 3px;">
+                        ${ad.status !== 'active' ? `<button onclick="approveAd(${ad.id})" style="background: #00cc00; border: none; color: white; border-radius: 3px; cursor: pointer; padding: 4px; font-size: 10px; flex: 1; font-weight: bold;">APROVAR</button>` : '<span style="color:#00cc00; font-size:10px; flex:1; text-align:center; font-weight:bold;">ATIVO</span>'}
+                        <button onclick="deleteAd(${ad.id})" style="background: #ff4444; border: none; color: white; border-radius: 3px; cursor: pointer; padding: 4px; font-size: 10px;"><i data-lucide="trash-2" style="width: 12px;"></i></button>
+                    </div>
+                </div>
+                ${ad.status === 'pending' ? '<div style="position: absolute; top: 5px; right: 5px; background: #f59e0b; color: black; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; font-weight: bold;">PENDENTE</div>' : ''}
+            </div>
+        `}).join('') || '<p class="text-muted" style="grid-column: 1/-1; text-align: center; padding: 20px;">Nenhum produto encontrado.</p>';
+        lucide.createIcons();
+    }
+
+    window.renderUserGrowthChart = function() {
+        const ctx = document.getElementById('userGrowthChart');
+        if (!ctx) return;
+        
+        // Destruir gráfico anterior se existir para evitar sobreposição
+        if (window.growthChartInstance) {
+            window.growthChartInstance.destroy();
+        }
+
+        const users = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
+        const last7Days = [];
+        const userCounts = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateLabel = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            last7Days.push(dateLabel);
+            
+            const start = new Date(d.setHours(0,0,0,0)).getTime();
+            const end = new Date(d.setHours(23,59,59,999)).getTime();
+
+            const count = users.filter(u => {
+                // Tenta pegar timestamp de createdAt ou extrair do ID (u + timestamp)
+                let ts = u.createdAt ? new Date(u.createdAt).getTime() : (u.id.startsWith('u') ? parseInt(u.id.substring(1)) : 0);
+                return ts >= start && ts <= end;
+            }).length;
+            userCounts.push(count);
+        }
+
+        window.growthChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'Novos Usuários',
+                    data: userCounts,
+                    borderColor: '#9d00ff',
+                    backgroundColor: 'rgba(157, 0, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#9d00ff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#aaa', stepSize: 1 } },
+                    x: { grid: { display: false }, ticks: { color: '#aaa' } }
+                },
+                plugins: { legend: { labels: { color: 'white' } } }
+            }
+        });
     }
 
     // --- Funções de Backup e Restauração ---
