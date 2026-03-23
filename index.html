@@ -2052,6 +2052,10 @@
                         <input type="text" id="settings-name" value="${currentUser.name}">
                     </div>
                     <div class="input-group">
+                        <label for="settings-password">Alterar Senha</label>
+                        <input type="password" id="settings-password" placeholder="Nova senha (deixe em branco para não alterar)">
+                    </div>
+                    <div class="input-group">
                         <label for="settings-avatar">Sua Foto de Perfil</label>
                         <input type="file" id="settings-avatar-upload" accept="image/*">
                         <img id="settings-avatar-preview" src="${currentUser.avatar}" style="width: 80px; height: 80px; border-radius: 50%; margin-top: 10px; border: 2px solid var(--color-primary);">
@@ -2799,11 +2803,15 @@
     async function saveUserSettings(event) {
         event.preventDefault();
         const newName = document.getElementById('settings-name').value;
+        const newPassword = document.getElementById('settings-password').value;
         const avatarFile = document.getElementById('settings-avatar-upload').files[0];
         
         const updateAndSave = () => {
             // Atualiza sessão atual
             currentUser.name = newName;
+            if (newPassword && newPassword.trim() !== "") {
+                currentUser.password = newPassword.trim();
+            }
             localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
             
             // Atualiza usuário na lista geral
@@ -2815,6 +2823,7 @@
             
             updateUserUI();
             showNotification('Configurações salvas!');
+            if (newPassword) document.getElementById('settings-password').value = '';
         };
 
         if (avatarFile) {
