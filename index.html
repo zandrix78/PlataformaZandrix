@@ -1783,14 +1783,20 @@
 
     function renderDashboardView() {
         const container = document.getElementById('view-dashboard');
+        
+        const isAdmin = currentUser.email === ADMIN_EMAIL;
+        const myAds = isAdmin ? ads : ads.filter(a => a.userId === currentUser.id);
+        
         const stats = {
-            totalAds: ads.length,
-            totalClicks: ads.reduce((acc, ad) => acc + ad.clicks, 0),
-            totalImpressions: ads.reduce((acc, ad) => acc + ad.impressions, 0),
-            avgConversion: '2.4%'
+            totalAds: myAds.length,
+            totalClicks: myAds.reduce((acc, ad) => acc + (ad.clicks || 0), 0),
+            totalImpressions: myAds.reduce((acc, ad) => acc + (ad.impressions || 0), 0),
+            pendingCount: isAdmin 
+                ? ads.filter(a => a.status === 'pending').length 
+                : myAds.filter(a => a.status === 'pending').length
         };
 
-        const chartData = ads.slice(-7).map(ad => ({ 
+        const chartData = myAds.slice(-7).map(ad => ({ 
             name: ad.title.substring(0, 10) + '...', 
             cliques: ad.clicks || 0,
             impressoes: ad.impressions || 0 
@@ -1799,14 +1805,14 @@
         container.innerHTML = `
             <h2 style="border: none; margin-bottom: 1rem;">Dashboard</h2>
             <div class="stats-grid">
-                <div class="card stat-card"><div><p class="text-muted">Total Anúncios</p><p class="value">${stats.totalAds}</p></div><div class="icon" style="color: var(--color-primary);"><i data-lucide="megaphone"></i></div></div>
+                <div class="card stat-card"><div><p class="text-muted">${isAdmin ? 'Total na Plataforma' : 'Meus Anúncios'}</p><p class="value">${stats.totalAds}</p></div><div class="icon" style="color: var(--color-primary);"><i data-lucide="megaphone"></i></div></div>
                 <div class="card stat-card"><div><p class="text-muted">Cliques Totais</p><p class="value">${stats.totalClicks.toLocaleString()}</p></div><div class="icon" style="color: #10b981;"><i data-lucide="mouse-pointer-click"></i></div></div>
                 <div class="card stat-card"><div><p class="text-muted">Impressões</p><p class="value">${stats.totalImpressions.toLocaleString()}</p></div><div class="icon" style="color: #3b82f6;"><i data-lucide="eye"></i></div></div>
-                <div class="card stat-card"><div><p class="text-muted">Conversão Média</p><p class="value">${stats.avgConversion}</p></div><div class="icon" style="color: #f97316;"><i data-lucide="trending-up"></i></div></div>
+                <div class="card stat-card"><div><p class="text-muted">${isAdmin ? 'Aprovações Pendentes' : 'Em Análise'}</p><p class="value">${stats.pendingCount}</p></div><div class="icon" style="color: #f97316;"><i data-lucide="clock"></i></div></div>
             </div>
             <div class="charts-grid">
                 <div class="card"><h3 class="mb-4">Performance (30 dias)</h3><canvas id="perfChart"></canvas></div>
-                <div class="card"><h3 class="mb-4">Top Anúncios</h3><div class="top-ads-list">${ads.slice(0, 3).map(ad => `
+                <div class="card"><h3 class="mb-4">Top Anúncios</h3><div class="top-ads-list">${myAds.slice(0, 3).map(ad => `
                     <div class="ad-item">
                         <span>${ad.title}</span>
                         <span class="badge badge-${ad.status}">${ad.status}</span>
@@ -1834,25 +1840,25 @@
     function renderAdsView() {
         const container = document.getElementById('view-ads');
         
-        // Verifica se é o administrador
-        if (currentUser.email !== ADMIN_EMAIL) {
-            container.innerHTML = `<div class="card" style="text-align:center; padding: 3rem;"><h2>Acesso Restrito</h2><p class="text-muted">Apenas o administrador (${ADMIN_EMAIL}) pode gerenciar anúncios.</p></div>`;
-            return;
-        }
+        const isAdmin = currentUser.email === ADMIN_EMAIL;
+        // Se for admin, vê tudo. Se for usuário, vê apenas os seus (ou anúncios legados sem ID se ele criou antes)
+        const userAds = isAdmin ? ads : ads.filter(ad => ad.userId === currentUser.id);
 
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2>Meus Anúncios</h2>
+                <h2>${isAdmin ? 'Gerenciar Todos os Anúncios (Admin)' : 'Meus Anúncios'}</h2>
                 <button class="btn btn-primary" onclick="openAdModal()"><i data-lucide="plus"></i> Criar Anúncio</button>
             </div>
             <div class="ads-list" style="display: flex; flex-direction: column; gap: 1rem;">
-                ${ads.map(ad => `
+                ${userAds.length === 0 ? '<div class="card" style="text-align: center; color: var(--color-text-muted);">Nenhum anúncio encontrado.</div>' : ''}
+                ${userAds.map(ad => `
                     <div class="card ad-row">
                         <div class="ad-info">
                             <img src="${ad.image}" alt="${ad.title}">
                             <div>
                                 <h3 style="font-size: 1.25rem;">${ad.title}</h3>
                                 <p class="text-muted">${ad.description}</p>
+                                ${isAdmin && ad.userName ? `<p style="font-size: 0.8rem; color: var(--color-primary); margin-top: 5px;">👤 Criado por: <strong>${ad.userName}</strong></p>` : ''}
                                 <div class="ad-stats" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem;">
                                     <span><i data-lucide="eye" style="width:14px; vertical-align: middle; margin-right: 4px;"></i> ${ad.impressions || 0}</span>
                                     <span><i data-lucide="mouse-pointer-click" style="width:14px; vertical-align: middle; margin-right: 4px;"></i> ${ad.clicks || 0}</span>
@@ -1861,6 +1867,10 @@
                             </div>
                         </div>
                         <div class="ad-actions">
+                            ${isAdmin ? `
+                                <button class="btn btn-ghost" onclick="togglePin(${ad.id})" title="${ad.isPinned ? 'Desfixar' : 'Fixar no Topo'}" style="${ad.isPinned ? 'color: var(--color-secondary);' : ''}"><i data-lucide="pin"></i></button>
+                                ${ad.status === 'pending' ? `<button class="btn btn-ghost" onclick="approveAd(${ad.id})" style="color: #10b981;" title="Aprovar"><i data-lucide="check-circle"></i></button>` : ''}
+                            ` : ''}
                             <span class="badge badge-${ad.status}">${ad.status}</span>
                             <button class="btn btn-ghost" onclick="openAdModal(${ad.id})"><i data-lucide="edit"></i></button>
                             <button class="btn btn-ghost" style="color: #f87171;" onclick="deleteAd(${ad.id})"><i data-lucide="trash-2"></i></button>
@@ -2299,6 +2309,14 @@
         document.getElementById('ad-image-preview').innerHTML = '';
         document.getElementById('ad-video-preview').innerHTML = '';
         
+        // Esconder seletor de status para não admins
+        const statusDiv = document.getElementById('ad-status').parentElement;
+        if (currentUser.email !== ADMIN_EMAIL) {
+            statusDiv.style.display = 'none';
+        } else {
+            statusDiv.style.display = 'block';
+        }
+        
         // Limpar containers dinâmicos
         document.getElementById('ad-urls-container').innerHTML = '';
         document.getElementById('ad-prices-container').innerHTML = '';
@@ -2347,6 +2365,14 @@
     }
 
     function deleteAd(id) {
+        const ad = ads.find(a => a.id === id);
+        if (!ad) return;
+        
+        // Admin pode deletar tudo. Usuário só deleta o seu.
+        if (currentUser.email !== ADMIN_EMAIL && ad.userId !== currentUser.id) {
+            return showNotification("Você não tem permissão para excluir este anúncio.", "error");
+        }
+
         if (confirm("Tem certeza que deseja excluir este anúncio?")) {
             ads = ads.filter(ad => ad.id !== id);
             localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
@@ -2414,6 +2440,15 @@
             const finalPhotos = photoData.length > 0 ? photoData : existingPhotos;
             const finalVideos = videoData.length > 0 ? videoData : existingVideos;
 
+            // Lógica de Status
+            let status = document.getElementById('ad-status').value;
+            // Se não for admin, força pendente ao criar. Se editar, mantém a não ser que o admin mude.
+            if (currentUser.email !== ADMIN_EMAIL) {
+                if (!id) status = 'pending'; // Novo anúncio sempre pendente
+                // Se edição, mantém o status atual (ou volta pra pendente se quisermos rigor. Vamos manter o atual se já aprovado, mas impedir mudança para active se estiver pendente)
+                // Simplificação: Usuário não mexe no status. Se criar é pending.
+            }
+
             const adData = {
                 title: document.getElementById('ad-title').value,
                 description: document.getElementById('ad-desc').value,
@@ -2423,7 +2458,7 @@
                 // Mantém compatibilidade com visualização antiga pegando o primeiro item
                 url: urls[0], 
                 price: prices[0],
-                status: document.getElementById('ad-status').value,
+                status: status,
                 photos: finalPhotos,
                 videos: finalVideos,
                 image: finalPhotos[0] || 'https://via.placeholder.com/400x200', // Capa
@@ -2434,11 +2469,17 @@
             if (id) { // Edit
                 const adIndex = ads.findIndex(a => a.id == id);
                 if (adIndex > -1) {
+                    // Verifica permissão na edição também
+                    if (currentUser.email !== ADMIN_EMAIL && ads[adIndex].userId !== currentUser.id) {
+                        throw new Error("Você não tem permissão para editar este anúncio.");
+                    }
                     ads[adIndex] = { ...ads[adIndex], ...adData };
                 }
             } else { // Create
                 adData.id = Date.now();
                 adData.createdAt = new Date().toISOString();
+                adData.userId = currentUser.id; // Vincula ao usuário atual
+                adData.userName = currentUser.name;
                 ads.push(adData);
             }
 
@@ -2457,9 +2498,35 @@
         }
     }
 
+    function togglePin(id) {
+        const adIndex = ads.findIndex(a => a.id === id);
+        if (adIndex > -1) {
+            ads[adIndex].isPinned = !ads[adIndex].isPinned;
+            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            renderAdsView();
+            renderMarketplaceView();
+            showNotification(ads[adIndex].isPinned ? 'Anúncio fixado no topo!' : 'Anúncio desafixado.');
+        }
+    }
+
+    function approveAd(id) {
+        const adIndex = ads.findIndex(a => a.id === id);
+        if (adIndex > -1) {
+            ads[adIndex].status = 'active';
+            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            renderAdsView();
+            renderMarketplaceView();
+            showNotification('Anúncio aprovado e ativo no Marketplace!');
+        }
+    }
+
     function filterMarketplace() {
         const searchTerm = document.getElementById('marketplace-search').value.toLowerCase();
-        const activeAds = ads.filter(ad => ad.status === 'active');
+        // Marketplace mostra apenas anúncios ativos
+        let activeAds = ads.filter(ad => ad.status === 'active');
+        
+        // Ordenação: Fixados primeiro
+        activeAds.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
         
         const filteredAds = searchTerm
             ? activeAds.filter(ad => ad.title.toLowerCase().includes(searchTerm) || ad.description.toLowerCase().includes(searchTerm))
@@ -2480,8 +2547,8 @@
         grid.innerHTML = adsToRender.map(ad => `
             <div class="card marketplace-card" style="padding: 0; position: relative; border: 1px solid #333; background: linear-gradient(180deg, rgba(20,20,20,1) 0%, rgba(10,10,10,1) 100%);">
                 <div style="position: relative;">
+                    ${ad.isPinned ? '<div style="position: absolute; top: 10px; right: 10px; background: var(--color-secondary); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold; z-index: 2;"><i data-lucide="pin" style="width:12px; vertical-align:middle;"></i> Destaque</div>' : ''}
                     <img src="${ad.image}" alt="${ad.title}" style="height: 200px; filter: brightness(0.9);">
-                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.8rem; font-weight: bold;">Novo</div>
                     <div style="position: absolute; top: 10px; left: 10px; background: var(--color-primary); padding: 4px 8px; border-radius: 4px; color: #fff; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${ad.category || 'Geral'}</div>
                 </div>
                 <div class="content" style="padding: 1.5rem;">
