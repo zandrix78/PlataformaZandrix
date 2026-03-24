@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <!-- Gun.js (Sincronização sem configuração) -->
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
 
     <style>
         /* --- 1. CONFIGURAÇÃO GERAL E VARIÁVEIS --- */
@@ -1503,6 +1505,82 @@
         { id: 1, userId: 'u2', userName: 'Ana', userAvatar: 'https://i.pravatar.cc/150?u=ana', type: 'text', content: 'Alguém tem dica de imagem boa para anúncio de estética?', timestamp: new Date(Date.now() - 1000 * 60 * 5), likes: [] },
         { id: 2, userId: 'u3', userName: 'Carlos', userAvatar: 'https://i.pravatar.cc/150?u=carlos', type: 'text', content: 'Tenta usar o Unsplash ou Pexels, sempre acho coisa boa lá!', timestamp: new Date(Date.now() - 1000 * 60 * 3), likes: ['u1'] },
     ];
+    
+    // --- INTEGRAÇÃO AUTOMÁTICA (Gun.js) ---
+    // Conecta a servidores públicos gratuitos para sincronizar dados sem login
+    let gun = null;
+    let appScope = null;
+    // Define um nome de sala único para sua "empresa". 
+    // Se quiser separar, mude 'zandrix_global_v1' para outro nome em todos os dispositivos.
+    const ROOM_NAME = 'zandrix_public_room_v2'; 
+
+    function initGun() {
+        // Conecta a relays públicos (servidores gratuitos da comunidade Gun.js)
+        gun = Gun([
+            'https://gun-manhattan.herokuapp.com/gun',
+            'https://gun-us.herokuapp.com/gun'
+        ]);
+        
+        appScope = gun.get(ROOM_NAME);
+        console.log("Conectado à Nuvem Pública Gun.js");
+        showNotification("Sincronização Automática Ativada ☁️", "success");
+
+        // --- OUVINTES DE DADOS (Receber atualizações) ---
+        
+        // 1. Usuários
+        appScope.get('users').on((data) => {
+            if(data && data.json) { 
+                users = JSON.parse(data.json); 
+                localStorage.setItem('zandrix_users_v2', JSON.stringify(users)); 
+                if(document.getElementById('view-settings').classList.contains('active')) renderAdminUsers();
+                
+                // Notifica o Admin quando novos usuários entram
+                if(currentUser && currentUser.email === ADMIN_EMAIL) {
+                    showNotification("🔄 Sincronizando Usuários...", "info");
+                }
+            }
+        });
+
+        // 2. Anúncios
+        appScope.get('ads').on((data) => {
+            if(data && data.json) { 
+                ads = JSON.parse(data.json); 
+                localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads)); 
+                if(document.getElementById('view-ads').classList.contains('active')) renderAdsView(); 
+                if(document.getElementById('view-marketplace').classList.contains('active')) filterMarketplace(); 
+                // Notifica o Admin e atualiza a lista de produtos para aprovação
+                if(currentUser && currentUser.email === ADMIN_EMAIL && document.getElementById('view-settings').classList.contains('active')) {
+                    renderAdminAds();
+                    showNotification("📦 Novos produtos recebidos de outros dispositivos!", "success");
+                }
+            }
+        });
+
+        // 3. Chat
+        appScope.get('communityMessages').on((data) => {
+            if(data && data.json) { 
+                communityMessages = JSON.parse(data.json);
+                localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages)); 
+                if(document.getElementById('view-community').classList.contains('active')) { renderChatMessages(); }
+            }
+        });
+    }
+
+    // Função auxiliar para salvar dados (Local + Gun.js)
+    function syncData(collection, data) {
+        // 1. Salva Local
+        localStorage.setItem(`zandrix_${collection}_v2`, JSON.stringify(data));
+        
+        // 2. Envia para a Nuvem Pública
+        if (appScope) {
+            // Envia como string JSON com timestamp para forçar atualização
+            appScope.get(collection).put({ 
+                json: JSON.stringify(data),
+                timestamp: Date.now() 
+            });
+        }
+    }
+
     let replyingTo = null;
 
 
@@ -1744,7 +1822,7 @@
         };
 
         users.push(newUser);
-        localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+        syncData('users', users); // Salva com sync
         
         currentUser = newUser;
         localStorage.setItem('zandrix_current_session', JSON.stringify(currentUser));
@@ -1863,6 +1941,7 @@
     }
 
     function renderAdsView() {
+        // Atualiza a lista com o que estiver na memória (que pode ter vindo do Firebase)
         const container = document.getElementById('view-ads');
         
         const isAdmin = currentUser.email === ADMIN_EMAIL;
@@ -2087,6 +2166,9 @@
         container.innerHTML = `
             <div class="card" style="max-width: 600px; margin: auto;">
                 <h2>Configurações do Perfil</h2>
+                <div style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    ☁️ Nuvem Pública Ativada (Sincronização Automática)
+                </div>
                 <form id="settings-form">
                     <div class="input-group">
                         <label for="settings-name">Seu Nome</label>
@@ -2324,7 +2406,7 @@
 
         if (userIndex > -1) {
             currentUsers[userIndex].password = newPassword.trim();
-            localStorage.setItem('zandrix_users_v2', JSON.stringify(currentUsers));
+            syncData('users', currentUsers); // Sync nuvem
             users = currentUsers;
             showNotification(`Senha do usuário ${currentUsers[userIndex].name} alterada com sucesso!`);
             newPasswordInput.value = '';
@@ -2348,7 +2430,7 @@
         user.name = newName || user.name;
         user.email = newEmail || user.email;
         
-        localStorage.setItem('zandrix_users_v2', JSON.stringify(currentUsers));
+        syncData('users', currentUsers); // Sync nuvem
         users = currentUsers;
         renderAdminUsers();
         showNotification("Dados do usuário atualizados.");
@@ -2359,7 +2441,7 @@
         
         let currentUsers = JSON.parse(localStorage.getItem('zandrix_users_v2')) || [];
         currentUsers = currentUsers.filter(u => u.id !== userId);
-        localStorage.setItem('zandrix_users_v2', JSON.stringify(currentUsers));
+        syncData('users', currentUsers); // Sync nuvem
         users = currentUsers;
         renderAdminUsers();
         showNotification("Usuário excluído com sucesso.", "success");
@@ -2640,6 +2722,7 @@
     }
 
     function renderCommunityView() {
+        // Renderiza o chat
         const container = document.getElementById('view-community');
         container.innerHTML = `
             <div class="card" style="padding: 0; overflow: hidden; height: 85vh; display: flex; flex-direction: column;">
@@ -2748,6 +2831,7 @@
 
         lucide.createIcons();
         initLandingPage(); // Initialize new landing page features
+        initGun(); // Inicia conexão automática com Gun.js
 
         // Auth
         document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -2988,7 +3072,7 @@
                 ads.push(adData);
             }
 
-            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            syncData('ads', ads); // Sync nuvem
             closeAdModal();
             renderAdsView();
             renderMarketplaceView();
@@ -3007,7 +3091,7 @@
         const adIndex = ads.findIndex(a => a.id === id);
         if (adIndex > -1) {
             ads[adIndex].isPinned = !ads[adIndex].isPinned;
-            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            syncData('ads', ads); // Sync nuvem
             renderAdsView();
             renderMarketplaceView();
             showNotification(ads[adIndex].isPinned ? 'Anúncio fixado no topo!' : 'Anúncio desafixado.');
@@ -3018,7 +3102,7 @@
         const adIndex = ads.findIndex(a => a.id === id);
         if (adIndex > -1) {
             ads[adIndex].status = 'active';
-            localStorage.setItem('zandrix_ads_v2', JSON.stringify(ads));
+            syncData('ads', ads); // Sync nuvem
             renderAdsView();
             renderMarketplaceView();
             showNotification('Anúncio aprovado e ativo no Marketplace!');
@@ -3360,7 +3444,7 @@
                 replyTo: replyingTo // Anexa a mensagem respondida, se houver
             };
             communityMessages.push(message);
-            localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+            syncData('communityMessages', communityMessages); // Sync Nuvem
             cancelReply(); // Limpa o estado de resposta
             renderChatMessages();
             input.value = '';
@@ -3381,7 +3465,7 @@
         } else {
             message.likes.push(currentUser.id); // Like
         }
-        localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+        syncData('communityMessages', communityMessages); // Sync Nuvem
         renderChatMessages();
     }
 
@@ -3426,7 +3510,7 @@
             const userIndex = users.findIndex(u => u.id === userId);
             if (userIndex > -1) {
                 users[userIndex].banned = true;
-                localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+                syncData('users', users); // Sync Nuvem
                 showNotification(`Usuário ${userName} foi banido.`, 'success');
                 
                 if (document.getElementById('view-settings').classList.contains('active')) {
@@ -3447,7 +3531,7 @@
         const userIndex = users.findIndex(u => u.id === userId);
         if (userIndex > -1) {
             delete users[userIndex].banned;
-            localStorage.setItem('zandrix_users_v2', JSON.stringify(users));
+            syncData('users', users); // Sync Nuvem
             showNotification(`Usuário desbanido.`, 'success');
             renderSettingsView();
         } else {
@@ -3461,7 +3545,7 @@
 
         if (confirm(isAdmin && !isOwnMessage ? "Apagar mensagem de outro usuário?" : "Apagar esta mensagem?")) {
             communityMessages = communityMessages.filter(m => m.id !== messageId);
-            localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+            syncData('communityMessages', communityMessages); // Sync Nuvem
             renderChatMessages();
             showNotification("Mensagem apagada.", 'success');
         }
@@ -3494,7 +3578,7 @@
                     const audioUrl = e.target.result; // Base64 audio data
                     const message = { id: Date.now(), userId: currentUser.id, userName: currentUser.name, userAvatar: currentUser.avatar, type: 'audio', content: audioUrl, timestamp: new Date(), likes: [], replyTo: replyingTo };
                     communityMessages.push(message);
-                    localStorage.setItem('zandrix_community_messages_v2', JSON.stringify(communityMessages));
+                    syncData('communityMessages', communityMessages); // Sync Nuvem
                     cancelReply();
                     renderChatMessages();
                     audioChunks = [];
